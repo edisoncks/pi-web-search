@@ -3,6 +3,11 @@
 Two web-search tools for pi: `web_search_exa` (primary) and `web_search_ddg`
 (fallback via DuckDuckGo Lite through Obscura).
 
+> **`web_search_ddg` requires the [Obscura](https://github.com/h4ckf0r0day/obscura)
+> CLI, which is not bundled with this package.** Install Obscura separately by
+> following its official installation instructions, and make sure `obscura` is
+> on your `PATH`. `web_search_exa` has no external binary dependency.
+
 ## Install
 
 ```bash
@@ -70,9 +75,12 @@ caller's abort never rejects co-waiters.
 - Node `>=20.3` (`AbortSignal.timeout`/`any`; guarded with an actionable error).
 - `EXA_API_KEY` optional (warn-and-try): anonymous use is attempted, and
   HTTP 401/403 responses name the key plus the DDG fallback.
-- `obscura` on `PATH` for DDG; ENOENT names the binary, `PATH`, and the Exa
-  fallback. DDG redirect links without a `uddg` target are dropped rather
-  than surfaced as results.
+- `obscura` on `PATH` for `web_search_ddg` only. Obscura is an external
+  dependency and is not installed by this package; install it separately by
+  following the official instructions at
+  https://github.com/h4ckf0r0day/obscura. ENOENT names the binary, `PATH`, and
+  the Exa fallback. DDG redirect links without a `uddg` target are dropped
+  rather than surfaced as results.
 
 ## Dev
 
