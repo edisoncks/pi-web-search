@@ -205,11 +205,17 @@ export async function withDuckDuckGoRequestSlot<T>(
   }
 }
 
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (typeof error !== "object" || error === null) return false;
+  const candidate = error as { name?: unknown; code?: unknown };
+  return candidate.name === "AbortError" || candidate.code === "ABORT_ERR";
+}
+
 export function isRetryableDuckDuckGoError(error: unknown): boolean {
   if (error instanceof DuckDuckGoUnavailableError) return false;
   if (error instanceof DuckDuckGoDriftError) return false;
-  if (error instanceof DOMException && error.name === "AbortError")
-    return false;
+  if (isAbortError(error)) return false;
   return true;
 }
 
