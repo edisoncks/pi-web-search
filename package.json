@@ -19,6 +19,7 @@
   "files": [
     "index.ts",
     "lib",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -28,8 +29,9 @@
     ]
   },
   "scripts": {
-    "test": "tsx --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit --skipLibCheck"
+    "test": "tsx --test tests/*.test.ts tests/behavior/*.test.ts",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "verify": "npm run typecheck && npm run test"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
