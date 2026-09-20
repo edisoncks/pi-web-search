@@ -295,7 +295,7 @@ Given raw body text and an optional `content-type`:
 4. If `looksSSE`: parse as SSE; on failure, fall back once to JSON; if that also
    fails, throw
    `Exa MCP response parsed neither as SSE (as SSE: <detail>) nor as JSON fallback`.
-5. If the parsed payload is not a record, throw
+5. If the parsed payload is not a record (an array is not a record), throw
    `Exa MCP returned an invalid JSON-RPC response`.
 
 **Critical invariant:** a JSON body that merely _contains_ the substring
