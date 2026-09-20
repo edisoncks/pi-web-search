@@ -32,7 +32,7 @@ export interface ProviderSearchResult {
 }
 
 export interface DuckDuckGoCacheEntry {
-  result: ProviderSearchResult;
+  results: WebSearchResult[];
   expiresAt: number;
 }
 
@@ -41,7 +41,7 @@ export interface DuckDuckGoState {
   nextRequestAt: number;
   unavailableUntil: number;
   cache: Map<string, DuckDuckGoCacheEntry>;
-  inFlight: Map<string, Promise<ProviderSearchResult>>;
+  inFlight: Map<string, Promise<WebSearchResult[]>>;
 }
 
 export interface McpRpcResponse {

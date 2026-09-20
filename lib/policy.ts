@@ -225,31 +225,33 @@ export function isRetryableDuckDuckGoError(error: unknown): boolean {
 }
 
 export function getDuckDuckGoCacheKey(params: NormalizedSearchParams): string {
+  // numResults is intentionally absent: DuckDuckGo Lite returns a fixed page
+  // and the caller slices it, so counting it here would fetch the same page
+  // twice for two different result counts.
   return JSON.stringify({
     query: params.query,
     allowedDomains: params.allowedDomains,
     blockedDomains: params.blockedDomains,
-    numResults: params.numResults,
   });
 }
 
-export function getCachedDuckDuckGoResult(
+export function getCachedDuckDuckGoResults(
   state: DuckDuckGoState,
   key: string,
-): ProviderSearchResult | undefined {
+): WebSearchResult[] | undefined {
   const entry = state.cache.get(key);
   if (!entry) return undefined;
   if (entry.expiresAt <= Date.now()) {
     state.cache.delete(key);
     return undefined;
   }
-  return entry.result;
+  return entry.results;
 }
 
-export function cacheDuckDuckGoResult(
+export function cacheDuckDuckGoResults(
   state: DuckDuckGoState,
   key: string,
-  result: ProviderSearchResult,
+  results: WebSearchResult[],
 ): void {
   const now = Date.now();
   for (const [entryKey, entry] of state.cache) {
@@ -258,7 +260,7 @@ export function cacheDuckDuckGoResult(
 
   state.cache.delete(key);
   state.cache.set(key, {
-    result,
+    results,
     expiresAt: now + DDG_CACHE_TTL_MS,
   });
 
