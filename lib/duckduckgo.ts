@@ -260,8 +260,10 @@ export async function fetchDuckDuckGoAttempt(
     {
       encoding: "utf8",
       maxBuffer: DDG_MAX_OUTPUT_BYTES,
+      // getRequestSignal already bounds this call with the caller's signal plus
+      // AbortSignal.timeout(REQUEST_TIMEOUT_MS); a separate execFile `timeout`
+      // would be a second mechanism racing the same child process.
       signal: getRequestSignal(signal),
-      timeout: REQUEST_TIMEOUT_MS,
     },
   );
   const html = stdout;

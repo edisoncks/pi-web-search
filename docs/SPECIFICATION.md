@@ -307,8 +307,11 @@ are never rewritten into provider errors.
   obscura --stealth fetch <lite-url-with-q> --dump html --quiet --wait 0 --timeout 15
   ```
 
-- `execFile` options: `encoding: "utf8"`, `maxBuffer: 4 * 1024 * 1024`,
-  `timeout: 15000`, plus the combined request signal.
+- `execFile` options: `encoding: "utf8"`, `maxBuffer: 4 * 1024 * 1024`, plus
+  the combined request signal (the caller's signal combined with
+  `AbortSignal.timeout(15000)`). The signal is the single Node-side timeout;
+  there is no separate `execFile` `timeout` racing it. The `--timeout 15` argv
+  flag is Obscura's own fetch bound.
 - Empty/whitespace stdout throws `Obscura returned empty DuckDuckGo HTML`.
 
 ### 7.2 Query construction
