@@ -20,10 +20,11 @@ import {
 
 export const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 
-// Exa MCP wire constants. Kept as local (non-exported) values so the public
-// surface stays the three pure builders below; the SPEC pins the literals.
-const EXA_PRIMARY_TOOL = "web_search_exa";
-const EXA_ADVANCED_TOOL = "web_search_advanced_exa";
+// Exa MCP wire constants. Kept as local (non-exported) values so the module
+// surface stays the pure builders below; the SPEC pins the literals.
+export type ExaToolName = "web_search_exa" | "web_search_advanced_exa";
+const EXA_PRIMARY_TOOL: ExaToolName = "web_search_exa";
+const EXA_ADVANCED_TOOL: ExaToolName = "web_search_advanced_exa";
 const EXA_INITIALIZE_ID = 1;
 const EXA_TOOLS_CALL_ID = 2;
 const EXA_PROTOCOL_VERSION = "2025-03-26";
@@ -57,7 +58,7 @@ export function buildExaInitializeRequest(): Record<string, unknown> {
  */
 export function buildExaSearchRequest(
   params: NormalizedSearchParams,
-  toolName: string,
+  toolName: ExaToolName,
 ): Record<string, unknown> {
   const useAdvancedTool = toolName === EXA_ADVANCED_TOOL;
   const argumentsPayload: Record<string, unknown> = {
