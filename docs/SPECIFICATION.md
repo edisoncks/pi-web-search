@@ -432,25 +432,25 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`.
 
 ## 9. Error taxonomy
 
-| Condition              | Type / message                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------ |
-| Query too short        | `Search query must be at least 2 characters long`                                          |
-| Bad `numResults`       | `numResults must be an integer between 1 and 20`                                           |
-| Blank / invalid domain | `Invalid domain: <value>`                                                                  |
-| Exa non-2xx            | `Exa MCP returned HTTP <status>[: <body ≤ 300>]`                                           |
-| Exa JSON-RPC error     | `Exa MCP error (<code>): <message>`                                                        |
-| Exa tool error         | tool text or `Exa MCP search failed`                                                       |
-| Exa no result          | `Exa MCP returned no tool result`                                                          |
-| Exa 401/403            | `Exa web search is unavailable (<detail>). Set EXA_API_KEY …`                              |
-| Exa quota/rate limit   | `Exa quota or rate limit was reached (<detail>). Call web_search_ddg …`                    |
-| Exa other              | `Exa web search is unavailable (<detail>). Call web_search_ddg …`                          |
-| Obscura missing        | `obscura not found on PATH (required for web_search_ddg); …`                               |
-| DDG generic            | `DuckDuckGo web search is unavailable (<detail>). …`                                       |
-| DDG challenge          | `DuckDuckGoUnavailableError(reason, retryAt)`                                              |
-| DDG drift              | `DuckDuckGoDriftError`: `DuckDuckGo returned results but none could be parsed; …`          |
-| Circuit open           | `DuckDuckGoUnavailableError`: `DuckDuckGo is temporarily unavailable; retry in about <n>s` |
-| Obscura empty output   | `Obscura returned empty DuckDuckGo HTML` (retryable)                                       |
-| Node too old           | `pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)`           |
+| Condition              | Type / message                                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Query too short        | `Search query must be at least 2 characters long`                                                                                                                |
+| Bad `numResults`       | `numResults must be an integer between 1 and 20`                                                                                                                 |
+| Blank / invalid domain | `Invalid domain: <value>`                                                                                                                                        |
+| Exa non-2xx            | `Exa MCP returned HTTP <status>[: <body ≤ 300>]`                                                                                                                 |
+| Exa JSON-RPC error     | `Exa MCP error (<code>): <message>`                                                                                                                              |
+| Exa tool error         | tool text or `Exa MCP search failed`                                                                                                                             |
+| Exa no result          | `Exa MCP returned no tool result`                                                                                                                                |
+| Exa 401/403            | `Exa web search is unavailable (<detail>). Set EXA_API_KEY to use Exa, or call web_search_ddg for this search instead; do not retry web_search_exa immediately.` |
+| Exa quota/rate limit   | `Exa quota or rate limit was reached (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`                          |
+| Exa other              | `Exa web search is unavailable (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`                                |
+| Obscura missing        | `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (<detail>)`                                             |
+| DDG generic            | `DuckDuckGo web search is unavailable (<detail>). Use web_search_exa if it has not already failed; do not retry DuckDuckGo immediately.`                         |
+| DDG challenge          | `DuckDuckGoUnavailableError(reason, retryAt)`                                                                                                                    |
+| DDG drift              | `DuckDuckGoDriftError`: `DuckDuckGo returned results but none could be parsed; its markup likely changed. Use web_search_exa for this search.`                   |
+| Circuit open           | `DuckDuckGoUnavailableError`: `DuckDuckGo is temporarily unavailable; retry in about <n>s`                                                                       |
+| Obscura empty output   | `Obscura returned empty DuckDuckGo HTML` (retryable)                                                                                                             |
+| Node too old           | `pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)`                                                                                 |
 
 All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
 

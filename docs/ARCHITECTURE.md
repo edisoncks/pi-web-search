@@ -172,7 +172,7 @@ know them before you touch the relevant code.
   `"*"`, marked `optional`. Pi bundles core packages, so `optional` tells npm
   not to install a duplicate copy; the imports are nevertheless hard.
 - `engines.node` is `>=22.19.0`, matching the Pi host peer dependency. The
-  `getRequestSignal` guard reports the same floor.
+  `getSearchSignal` guard reports the same floor.
 - The `files` allowlist ships `index.ts`, `lib`, `docs`, `README.md`, and
   `LICENSE`.
 
