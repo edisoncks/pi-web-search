@@ -26,4 +26,5 @@ deliberately rather than pasting live responses.
 | `ddg/selflink.html`             | DDG self-links and non-http targets are dropped                           |
 | `ddg/challenge.html`            | Challenge classification                                                  |
 | `ddg/drift.html`                | Drift classification (`uddg=` present, zero parsed results)               |
+| `ddg/no-results-nav.html`       | A non-web `uddg=` nav link is empty, not drift                            |
 | `ddg/empty.html`                | Empty classification                                                      |

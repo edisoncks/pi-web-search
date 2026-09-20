@@ -292,11 +292,16 @@ Decided on the **unfiltered** extraction, in order:
 2. `detectDuckDuckGoChallenge(html)` matches
    `/challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/i` →
    `{ kind: "challenge", reason: "DuckDuckGo returned an anti-bot challenge page" }`.
-3. HTML contains `uddg=` → `{ kind: "drift" }`.
+3. HTML contains a result-shaped redirect — `uddg=` whose target is an
+   `http(s)` URL, i.e. `/uddg=(?:https?%3A%2F%2F|https?:\/\/)/i` →
+   `{ kind: "drift" }`. A `uddg=` link to a non-web target is not drift.
 4. Else `{ kind: "empty" }`.
 
 The challenge detector is only consulted when zero results were extracted, so
-snippet text cannot trip the breaker.
+snippet text cannot trip the breaker. Drift detection is a **heuristic** on the
+served markup: a page that carries a web-target `uddg=` link outside its result
+rows can still be misreported as drift, but a bare non-web navigation link no
+longer is.
 
 ### 6.6 Failure and retry semantics
 
@@ -304,7 +309,7 @@ snippet text cannot trip the breaker.
   `DuckDuckGoUnavailableError(reason, retryAt)`.
 - **Drift** → throw `DuckDuckGoDriftError` with
   `DuckDuckGo returned results but none could be parsed; its markup likely changed. Use web_search_exa for this search.`
-  Deterministic: no retry, no cooldown, no spacing penalty.
+  Retrying would only reproduce it: no retry, no cooldown, no spacing penalty.
 - **Empty** → success with zero results.
 - At most one retry (two attempts). `isRetryableDuckDuckGoError` is `false` for
   `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`,
@@ -461,15 +466,16 @@ All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
 `tests/behavior/*.test.ts` runs the committed fixtures against the
 implementation; `npm test` runs everything.
 
-| Path                                           | Pins                                     |
-| ---------------------------------------------- | ---------------------------------------- |
-| `tests/fixtures/exa/sse-multiframe.txt`        | §5.4 last-JSON-frame selection           |
-| `tests/fixtures/exa/json-with-data-colon.json` | §5.4 the `data:`-substring invariant     |
-| `tests/fixtures/exa/structured-results.json`   | §5.5 title/snippet precedence            |
-| `tests/fixtures/exa/plain-text.txt`            | §5.5 unstructured path, `resultCount: 0` |
-| `tests/fixtures/ddg/lite-results.html`         | §6.3 parsing of links + snippets         |
-| `tests/fixtures/ddg/entities.html`             | §6.4 entity decoding                     |
-| `tests/fixtures/ddg/selflink.html`             | §6.3 no DDG self-links                   |
-| `tests/fixtures/ddg/challenge.html`            | §6.5 challenge classification            |
-| `tests/fixtures/ddg/drift.html`                | §6.5 drift classification                |
-| `tests/fixtures/ddg/empty.html`                | §6.5 empty classification                |
+| Path                                           | Pins                                            |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `tests/fixtures/exa/sse-multiframe.txt`        | §5.4 last-JSON-frame selection                  |
+| `tests/fixtures/exa/json-with-data-colon.json` | §5.4 the `data:`-substring invariant            |
+| `tests/fixtures/exa/structured-results.json`   | §5.5 title/snippet precedence                   |
+| `tests/fixtures/exa/plain-text.txt`            | §5.5 unstructured path, `resultCount: 0`        |
+| `tests/fixtures/ddg/lite-results.html`         | §6.3 parsing of links + snippets                |
+| `tests/fixtures/ddg/entities.html`             | §6.4 entity decoding                            |
+| `tests/fixtures/ddg/selflink.html`             | §6.3 no DDG self-links                          |
+| `tests/fixtures/ddg/challenge.html`            | §6.5 challenge classification                   |
+| `tests/fixtures/ddg/drift.html`                | §6.5 drift classification                       |
+| `tests/fixtures/ddg/no-results-nav.html`       | §6.5 a non-web `uddg=` link is empty, not drift |
+| `tests/fixtures/ddg/empty.html`                | §6.5 empty classification                       |
