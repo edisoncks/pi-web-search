@@ -29,7 +29,7 @@
     ]
   },
   "scripts": {
-    "test": "tsx --test tests/*.test.ts tests/behavior/*.test.ts",
+    "test": "tsx --test 'tests/**/*.test.ts'",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
