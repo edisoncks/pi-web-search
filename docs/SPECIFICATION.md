@@ -396,9 +396,10 @@ All DDG work is serialized through `state.requestQueue`:
 
 ### 7.10 Caching and dedup
 
-- **Cache key** = `JSON.stringify({ query, allowedDomains, blockedDomains })`.
-  It deliberately **excludes `numResults`**: DuckDuckGo Lite returns a fixed
-  page that the caller slices, so one fetch serves every count.
+- **Cache key** = `JSON.stringify({ query, allowedDomains, blockedDomains })`
+  with both domain arrays **sorted**, so the same filters in any order share one
+  entry. It deliberately **excludes `numResults`**: DuckDuckGo Lite returns a
+  fixed page that the caller slices, so one fetch serves every count.
 - The cache stores the **raw `WebSearchResult[]`**, not formatted output; the
   TTL is 10 minutes and the cap is 64 entries (expired entries are purged on
   write; the oldest insertion is evicted over the cap).

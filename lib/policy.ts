@@ -238,10 +238,13 @@ export function getDuckDuckGoCacheKey(params: NormalizedSearchParams): string {
   // numResults is intentionally absent: DuckDuckGo Lite returns a fixed page
   // and the caller slices it, so counting it here would fetch the same page
   // twice for two different result counts.
+  //
+  // The domain arrays are sorted so the same filters in a different order map
+  // to the same cache entry instead of fetching the identical page twice.
   return JSON.stringify({
     query: params.query,
-    allowedDomains: params.allowedDomains,
-    blockedDomains: params.blockedDomains,
+    allowedDomains: [...params.allowedDomains].sort(),
+    blockedDomains: [...params.blockedDomains].sort(),
   });
 }
 
