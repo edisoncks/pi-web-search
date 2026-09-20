@@ -20,12 +20,14 @@ The gates:
 
 ```sh
 npm install
-npm run verify      # typecheck + all tests
+npm run verify      # format + lint + typecheck + all tests
 ```
 
 Individual pieces:
 
 ```sh
+npm run format:check
+npm run lint
 npm run typecheck
 npm test            # units, behavior tests, and documentation gates
 ```

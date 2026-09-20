@@ -179,7 +179,7 @@ export function parseMcpResponse(
   if (!isRecord(payload)) {
     throw new Error("Exa MCP returned an invalid JSON-RPC response");
   }
-  return payload as McpRpcResponse;
+  return payload;
 }
 
 /**

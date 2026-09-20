@@ -1,6 +1,9 @@
 // Rate limiting, caching, circuit breaking, request dedup, and abort-aware
 // signal helpers. Depends only on lib/types.js. Output formatting lives in
 // lib/format.ts so this module stays about request policy.
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors --
+   AbortSignal.reason is an arbitrary value by spec and must be rethrown
+   verbatim; wrapping it would rewrite an aborted caller's error. */
 import { REQUEST_TIMEOUT_MS } from "./types.js";
 import type {
   DuckDuckGoState,
@@ -117,24 +120,19 @@ export function waitWithSignal(
   if (ms <= 0) return Promise.resolve();
 
   return new Promise<void>((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const cleanup = () => {
-      if (timer !== undefined) clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-    };
     const onAbort = () => {
-      cleanup();
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
       reject(
         signal?.reason ??
           new DOMException("The operation was aborted", "AbortError"),
       );
     };
-
-    timer = setTimeout(() => {
-      cleanup();
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
       resolve();
     }, ms);
+
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
   });
@@ -304,7 +302,7 @@ export function cacheDuckDuckGoResults(
   });
 
   while (state.cache.size > DDG_CACHE_MAX_ENTRIES) {
-    const oldestKey = state.cache.keys().next().value as string | undefined;
+    const oldestKey = state.cache.keys().next().value;
     if (oldestKey === undefined) break;
     state.cache.delete(oldestKey);
   }

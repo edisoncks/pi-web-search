@@ -49,13 +49,14 @@ pi install git:github.com/edisoncks/pi-web-search@v2.0.0
 
 ```bash
 npm install
-npm run verify      # typecheck + all tests
+npm run verify      # format + lint + typecheck + all tests
 ```
 
 Individual commands:
 
 ```bash
 npm run typecheck
+npm run lint
 npm test            # units, behavior tests, and documentation gates
 ```
 
