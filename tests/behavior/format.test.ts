@@ -33,6 +33,16 @@ describe("output formatting", () => {
     );
   });
 
+  it("reports the provider resultCount even when the text is truncated", () => {
+    const big = Array.from({ length: 2500 }, (_, i) => `line ${i}`).join("\n");
+    const output = formatSearchToolResult("exa", {
+      text: big,
+      resultCount: 20,
+    });
+    assert.equal(output.details.resultCount, 20);
+    assert.match(output.content[0].text, /Search output truncated by pi/);
+  });
+
   it("truncates oversized output with the documented notice", () => {
     const big = Array.from({ length: 2500 }, (_, i) => `line ${i}`).join("\n");
     assert.match(truncateSearchOutput(big), /\[Search output truncated by pi;/);
