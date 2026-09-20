@@ -6,18 +6,18 @@ if the two conflict, the SPEC wins.
 
 ## Module roles
 
-| Module              | Responsibility                                                                                                | Depends on                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                               | —                                      |
-| `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                     | `types`, `filter`                      |
-| `lib/filter.ts`     | Pure domain normalization and matching.                                                                       | `types`                                |
-| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals. | `types`                                |
-| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                                                         | `types`, Pi host                       |
-| `lib/tools.ts`      | Tool metadata, execute wiring, and the injected provider interface.                                           | `params`, `format`, `types`, Pi host   |
-| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                                                       | `types`                                |
-| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version` |
-| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`            |
-| `index.ts`          | Extension factory: shared DuckDuckGo state, then `registerWebSearchTools`.                                    | `policy`, `exa`, `duckduckgo`, `tools` |
+| Module              | Responsibility                                                                                                | Depends on                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                               | —                                                |
+| `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                     | `types`, `filter`                                |
+| `lib/filter.ts`     | Pure domain normalization and matching.                                                                       | —                                                |
+| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals. | `types`                                          |
+| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                                                         | `types`, Pi host                                 |
+| `lib/tools.ts`      | Tool metadata, execute wiring, and the injected provider interface.                                           | `params`, `format`, `types`, Pi host             |
+| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime with a sentinel fallback.                              | `types`                                          |
+| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version`, `format` |
+| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`, `format`            |
+| `index.ts`          | Extension factory: shared DuckDuckGo state, then `registerWebSearchTools`.                                    | `policy`, `exa`, `duckduckgo`, `tools`           |
 
 ## Dependency graph
 
@@ -29,7 +29,7 @@ exa ──▶ { filter, types, policy, version, format }
 duckduckgo ──▶ { filter, types, policy, format }
 policy ──▶ { types }
 format ──▶ { types, Pi host }
-filter ──▶ { types }
+filter ──▶ ∅
 version ──▶ { types }
 types ──▶ ∅
 ```
@@ -187,6 +187,8 @@ Documentation and tests are part of the code, and CI enforces it:
   default factory.
 - `tests/doc-parity.test.ts` fails if a value in the SPEC's constants block
   disagrees with the code.
+- `tests/arch-graph.test.ts` fails if the dependency graph or the module-roles
+  table disagrees with the actual imports.
 - `tests/doc-links.test.ts` fails on a broken relative link between docs.
 - `tests/behavior/*.test.ts` pins the wire/parse/format behavior against the
   committed fixtures.
