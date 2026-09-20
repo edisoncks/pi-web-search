@@ -461,7 +461,10 @@ is. When truncated, append
 ```
 
 `details.provider` is lowercase (`exa` / `duckduckgo`), unlike the display
-casing in `formatNumberedResults`.
+casing in `formatNumberedResults`. `details.resultCount` is the
+**provider-reported** count before truncation: when the text is truncated,
+`content[0].text` contains fewer result blocks and ends with the truncation
+notice, while `resultCount` still reports how many the provider returned.
 
 ---
 
