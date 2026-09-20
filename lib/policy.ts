@@ -53,7 +53,7 @@ export function getRequestSignal(signal: AbortSignal | undefined): AbortSignal {
     typeof (AbortSignal as unknown as { any?: unknown }).any !== "function"
   ) {
     throw new Error(
-      "pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)",
+      "pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)",
     );
   }
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
@@ -115,26 +115,28 @@ export function waitForPromiseWithSignal<T>(
   if (!signal) return promise;
 
   return new Promise<T>((resolve, reject) => {
-    const onAbort = () => {
+    let settled = false;
+    const cleanup = () => signal.removeEventListener("abort", onAbort);
+    const settle = (finish: () => void) => {
+      if (settled) return;
+      settled = true;
       cleanup();
-      reject(
-        signal.reason ??
-          new DOMException("The operation was aborted", "AbortError"),
+      finish();
+    };
+    const onAbort = () => {
+      settle(() =>
+        reject(
+          signal.reason ??
+            new DOMException("The operation was aborted", "AbortError"),
+        ),
       );
     };
-    const cleanup = () => signal.removeEventListener("abort", onAbort);
 
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
     promise.then(
-      (value) => {
-        cleanup();
-        resolve(value);
-      },
-      (error: unknown) => {
-        cleanup();
-        reject(error);
-      },
+      (value) => settle(() => resolve(value)),
+      (error: unknown) => settle(() => reject(error)),
     );
   });
 }
