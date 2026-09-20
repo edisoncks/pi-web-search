@@ -8,10 +8,14 @@ import {
 
 describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => {
   it("names EXA_API_KEY on 401/403", () => {
-    const err401 = createExaSearchError(new Error("Exa MCP returned HTTP 401: unauthorized"));
+    const err401 = createExaSearchError(
+      new Error("Exa MCP returned HTTP 401: unauthorized"),
+    );
     assert.match(err401.message, /EXA_API_KEY/);
     assert.match(err401.message, /web_search_ddg/);
-    const err403 = createExaSearchError(new Error("Exa MCP returned HTTP 403 forbidden"));
+    const err403 = createExaSearchError(
+      new Error("Exa MCP returned HTTP 403 forbidden"),
+    );
     assert.match(err403.message, /EXA_API_KEY/);
   });
 
@@ -29,9 +33,7 @@ describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => 
 
 describe("createDuckDuckGoSearchError (P7: obscura PATH hint)", () => {
   it("names obscura and PATH on ENOENT", () => {
-    const err = createDuckDuckGoSearchError(
-      new Error("spawn obscura ENOENT"),
-    );
+    const err = createDuckDuckGoSearchError(new Error("spawn obscura ENOENT"));
     assert.match(err.message, /obscura not found on PATH/);
     assert.match(err.message, /web_search_exa/);
   });
@@ -52,7 +54,9 @@ describe("formatExaSearchResult resultCount (P7: honest zero)", () => {
 
   it("reports 0 for unstructured text even with Title: lines in body", () => {
     const out = formatExaSearchResult(
-      { content: [{ type: "text", text: "Title: foo\nTitle: bar\nsome body" }] },
+      {
+        content: [{ type: "text", text: "Title: foo\nTitle: bar\nsome body" }],
+      },
       params,
     );
     assert.equal(out.resultCount, 0);

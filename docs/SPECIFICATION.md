@@ -1,10 +1,10 @@
 # pi-web-search — Behavioral Specification
 
-| | |
-|---|---|
-| **Specification version** | 1.0.0 (matches package `pi-web-search@1.0.0`) |
-| **Status** | Normative for the shipped implementation |
-| **Audience** | Contributors maintaining, extending, or reviewing the extension |
+|                           |                                                                 |
+| ------------------------- | --------------------------------------------------------------- |
+| **Specification version** | 1.0.0 (matches package `pi-web-search@1.0.0`)                   |
+| **Status**                | Normative for the shipped implementation                        |
+| **Audience**              | Contributors maintaining, extending, or reviewing the extension |
 
 This document defines **what `pi-web-search` does**, in enough detail that an
 independent implementation can reproduce its observable behavior. It describes
@@ -17,7 +17,7 @@ interpreted as described in RFC 2119.
 
 > **External contracts drift.** The Exa MCP endpoint, the Obscura CLI, and the
 > DuckDuckGo Lite markup are third-party surfaces. Sections describing them are
-> written *as implemented at v1.0.0*. The committed fixtures and the behavior
+> written _as implemented at v1.0.0_. The committed fixtures and the behavior
 > tests (see §12) are the executable truth; if they disagree with
 > this prose, the fixtures win and this document is wrong.
 
@@ -61,28 +61,28 @@ the contract because importers and tests reference them.
 
 ### Types
 
-| Symbol | Shape |
-|---|---|
-| `WebSearchResult` | `{ title: string; url: string; snippet: string }` |
-| `WebSearchParams` | `{ query: string; allowed_domains?: string[]; blocked_domains?: string[]; numResults?: number }` |
-| `NormalizedSearchParams` | `{ query: string; allowedDomains: string[]; blockedDomains: string[]; numResults: number }` |
-| `ProviderSearchResult` | `{ text: string; resultCount: number }` |
-| `DuckDuckGoCacheEntry` | `{ result: ProviderSearchResult; expiresAt: number }` |
-| `DuckDuckGoState` | `{ requestQueue: Promise<void>; nextRequestAt: number; unavailableUntil: number; cache: Map<string, DuckDuckGoCacheEntry>; inFlight: Map<string, Promise<ProviderSearchResult>> }` |
-| `McpRpcResponse` | `{ result?: McpToolResult; error?: { code?: number; message?: string; data?: unknown } }` |
-| `McpToolResult` | `{ content?: Array<{ type?: string; text?: string }>; isError?: boolean; structuredContent?: unknown }` |
-| `ExaStructuredResult` | `{ title: string; url: string; snippet: string }` |
-| `DuckDuckGoClassification` | `{ kind: "results"; results: WebSearchResult[] } \| { kind: "challenge"; reason: string } \| { kind: "drift" } \| { kind: "empty" }` |
+| Symbol                     | Shape                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WebSearchResult`          | `{ title: string; url: string; snippet: string }`                                                                                                                                  |
+| `WebSearchParams`          | `{ query: string; allowed_domains?: string[]; blocked_domains?: string[]; numResults?: number }`                                                                                   |
+| `NormalizedSearchParams`   | `{ query: string; allowedDomains: string[]; blockedDomains: string[]; numResults: number }`                                                                                        |
+| `ProviderSearchResult`     | `{ text: string; resultCount: number }`                                                                                                                                            |
+| `DuckDuckGoCacheEntry`     | `{ result: ProviderSearchResult; expiresAt: number }`                                                                                                                              |
+| `DuckDuckGoState`          | `{ requestQueue: Promise<void>; nextRequestAt: number; unavailableUntil: number; cache: Map<string, DuckDuckGoCacheEntry>; inFlight: Map<string, Promise<ProviderSearchResult>> }` |
+| `McpRpcResponse`           | `{ result?: McpToolResult; error?: { code?: number; message?: string; data?: unknown } }`                                                                                          |
+| `McpToolResult`            | `{ content?: Array<{ type?: string; text?: string }>; isError?: boolean; structuredContent?: unknown }`                                                                            |
+| `ExaStructuredResult`      | `{ title: string; url: string; snippet: string }`                                                                                                                                  |
+| `DuckDuckGoClassification` | `{ kind: "results"; results: WebSearchResult[] } \| { kind: "challenge"; reason: string } \| { kind: "drift" } \| { kind: "empty" }`                                               |
 
 ### Functions and classes
 
-| Group | Symbols |
-|---|---|
-| Entry point | `default` (extension factory: `(pi: ExtensionAPI) => void`) |
-| Domain matching (`filter`) | `normalizeDomain`, `normalizeDomains`, `hostnameOf`, `isDomainMatch` |
-| Shared policy (`policy`) | `getRequestSignal`, `errorMessage`, `shortErrorMessage`, `throwIfAborted`, `waitWithSignal`, `waitForPromiseWithSignal`, `randomJitter`, `clampCooldown`, `markDuckDuckGoUnavailable`, `createCircuitOpenError`, `withDuckDuckGoRequestSlot`, `isRetryableDuckDuckGoError`, `getDuckDuckGoCacheKey`, `getCachedDuckDuckGoResult`, `cacheDuckDuckGoResult`, `formatNumberedResults`, `truncateSearchOutput`, `formatSearchToolResult`, `createDuckDuckGoState`, `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, `DDG_JITTER_MS` |
-| Exa provider (`exa`) | `buildExaInitializeRequest`, `buildExaSearchRequest`, `isExaQuotaOrRateLimitError`, `createExaSearchError`, `parseSsePayload`, `parseMcpResponse`, `postMcpRequest`, `mcpError`, `textFromMcpResult`, `parseExaStructuredResults`, `formatExaSearchResult`, `searchExa`, `searchExaForTool` |
-| DuckDuckGo provider (`duckduckgo`) | `buildObscuraArgs`, `decodeHtmlEntities`, `stripHtml`, `resolveDuckDuckGoResultUrl`, `parseDuckDuckGoResults`, `classifyDuckDuckGoResponse`, `detectDuckDuckGoChallenge`, `buildDuckDuckGoQuery`, `fetchDuckDuckGoAttempt`, `fetchDuckDuckGoWithRetry`, `searchDuckDuckGo`, `searchDuckDuckGoForTool`, `createDuckDuckGoSearchError` |
+| Group                              | Symbols                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Entry point                        | `default` (extension factory: `(pi: ExtensionAPI) => void`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Domain matching (`filter`)         | `normalizeDomain`, `normalizeDomains`, `hostnameOf`, `isDomainMatch`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Shared policy (`policy`)           | `getRequestSignal`, `errorMessage`, `shortErrorMessage`, `throwIfAborted`, `waitWithSignal`, `waitForPromiseWithSignal`, `randomJitter`, `clampCooldown`, `markDuckDuckGoUnavailable`, `createCircuitOpenError`, `withDuckDuckGoRequestSlot`, `isRetryableDuckDuckGoError`, `getDuckDuckGoCacheKey`, `getCachedDuckDuckGoResult`, `cacheDuckDuckGoResult`, `formatNumberedResults`, `truncateSearchOutput`, `formatSearchToolResult`, `createDuckDuckGoState`, `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, `DDG_JITTER_MS` |
+| Exa provider (`exa`)               | `buildExaInitializeRequest`, `buildExaSearchRequest`, `isExaQuotaOrRateLimitError`, `createExaSearchError`, `parseSsePayload`, `parseMcpResponse`, `postMcpRequest`, `mcpError`, `textFromMcpResult`, `parseExaStructuredResults`, `formatExaSearchResult`, `searchExa`, `searchExaForTool`                                                                                                                                                                                                                                          |
+| DuckDuckGo provider (`duckduckgo`) | `buildObscuraArgs`, `decodeHtmlEntities`, `stripHtml`, `resolveDuckDuckGoResultUrl`, `parseDuckDuckGoResults`, `classifyDuckDuckGoResponse`, `detectDuckDuckGoChallenge`, `buildDuckDuckGoQuery`, `fetchDuckDuckGoAttempt`, `fetchDuckDuckGoWithRetry`, `searchDuckDuckGo`, `searchDuckDuckGoForTool`, `createDuckDuckGoSearchError`                                                                                                                                                                                                 |
 
 > Several implementation constants (e.g. tool names, protocol version) are
 > deliberately **not** exported. They are pinned by §3/§6/§7 and by the
@@ -96,39 +96,39 @@ The extension registers the two tools below. Every string is normative.
 
 ### 3.1 `web_search_exa`
 
-| Field | Value |
-|---|---|
-| `name` | `web_search_exa` |
-| `label` | `Web Search (Exa)` |
-| `description` | `Primary web search provider. Use web_search_exa first for current information and relevant sources. If Exa reports a quota, rate-limit, or provider error, call web_search_ddg instead; do not retry Exa immediately.` |
-| `promptSnippet` | `Search the web with Exa as the primary provider` |
+| Field              | Value                                                                                                                                                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`             | `web_search_exa`                                                                                                                                                                                                                                                                                  |
+| `label`            | `Web Search (Exa)`                                                                                                                                                                                                                                                                                |
+| `description`      | `Primary web search provider. Use web_search_exa first for current information and relevant sources. If Exa reports a quota, rate-limit, or provider error, call web_search_ddg instead; do not retry Exa immediately.`                                                                           |
+| `promptSnippet`    | `Search the web with Exa as the primary provider`                                                                                                                                                                                                                                                 |
 | `promptGuidelines` | `["Use web_search_exa first when the user needs current information or web sources.", "If web_search_exa reports an error, call web_search_ddg instead of retrying Exa immediately.", "Do not call web_search_exa and web_search_ddg for the same query unless the user requests a comparison."]` |
-| `parameters` | §3.3 |
-| `execute` | normalize params (§4) → `searchExaForTool` (§6) → `formatSearchToolResult("exa", result)` (§8) |
+| `parameters`       | §3.3                                                                                                                                                                                                                                                                                              |
+| `execute`          | normalize params (§4) → `searchExaForTool` (§6) → `formatSearchToolResult("exa", result)` (§8)                                                                                                                                                                                                    |
 
 ### 3.2 `web_search_ddg`
 
-| Field | Value |
-|---|---|
-| `name` | `web_search_ddg` |
-| `label` | `Web Search (DuckDuckGo)` |
-| `description` | `Fallback web search provider using DuckDuckGo Lite through Obscura. Only use web_search_ddg when web_search_exa reports an error or when the user explicitly requests DuckDuckGo. Do not use it for routine searches while Exa is available.` |
-| `promptSnippet` | `Search the web with DuckDuckGo only after Exa fails` |
-| `promptGuidelines` | `["Use web_search_ddg only after web_search_exa reports an error or when the user explicitly requests DuckDuckGo.", "Do not use web_search_ddg as the first provider for routine searches."]` |
-| `parameters` | §3.3 |
-| `execute` | normalize params (§4) → `searchDuckDuckGoForTool(params, state, signal)` (§7) → `formatSearchToolResult("duckduckgo", result)` (§8) |
+| Field              | Value                                                                                                                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`             | `web_search_ddg`                                                                                                                                                                                                                               |
+| `label`            | `Web Search (DuckDuckGo)`                                                                                                                                                                                                                      |
+| `description`      | `Fallback web search provider using DuckDuckGo Lite through Obscura. Only use web_search_ddg when web_search_exa reports an error or when the user explicitly requests DuckDuckGo. Do not use it for routine searches while Exa is available.` |
+| `promptSnippet`    | `Search the web with DuckDuckGo only after Exa fails`                                                                                                                                                                                          |
+| `promptGuidelines` | `["Use web_search_ddg only after web_search_exa reports an error or when the user explicitly requests DuckDuckGo.", "Do not use web_search_ddg as the first provider for routine searches."]`                                                  |
+| `parameters`       | §3.3                                                                                                                                                                                                                                           |
+| `execute`          | normalize params (§4) → `searchDuckDuckGoForTool(params, state, signal)` (§7) → `formatSearchToolResult("duckduckgo", result)` (§8)                                                                                                            |
 
 The two tools share one `DuckDuckGoState` instance, created once at extension
 load.
 
 ### 3.3 Parameter schema (both tools)
 
-| Field | Type | Constraints | Default |
-|---|---|---|---|
-| `query` | string | `minLength: 2` | required |
-| `allowed_domains` | string[] | each item `minLength: 1` | absent |
-| `blocked_domains` | string[] | each item `minLength: 1` | absent |
-| `numResults` | integer | `minimum: 1`, `maximum: 20` | `8` |
+| Field             | Type     | Constraints                 | Default  |
+| ----------------- | -------- | --------------------------- | -------- |
+| `query`           | string   | `minLength: 2`              | required |
+| `allowed_domains` | string[] | each item `minLength: 1`    | absent   |
+| `blocked_domains` | string[] | each item `minLength: 1`    | absent   |
+| `numResults`      | integer  | `minimum: 1`, `maximum: 20` | `8`      |
 
 Schema descriptions (shown to the LLM):
 
@@ -202,7 +202,7 @@ Tolerant parsing used only for matching:
 **Filter authority:**
 
 - For Exa with domain filters present, the server-side advanced tool is
-  authoritative; structured results are *additionally* filtered client-side
+  authoritative; structured results are _additionally_ filtered client-side
   with `isDomainMatch` (§6.6).
 - For DuckDuckGo, filtering is client-side only. Query-embedded `site:`
   operators (§7.2) are a hint, never the authority.
@@ -263,14 +263,14 @@ Three POSTs, in order, all to the same endpoint URL:
 
 `postMcpRequest` (`postMcpRequest`) sends:
 
-| Header | Value |
-|---|---|
-| `Accept` | `application/json, text/event-stream` |
-| `Content-Type` | `application/json` |
-| `x-exa-source` | `pi-web-search` |
-| `x-api-key` | `process.env.EXA_API_KEY?.trim()`, only when non-empty |
-| `Mcp-Session-Id` | session id, only when known |
-| `MCP-Protocol-Version` | `2025-03-26`, only when a session id is sent |
+| Header                 | Value                                                  |
+| ---------------------- | ------------------------------------------------------ |
+| `Accept`               | `application/json, text/event-stream`                  |
+| `Content-Type`         | `application/json`                                     |
+| `x-exa-source`         | `pi-web-search`                                        |
+| `x-api-key`            | `process.env.EXA_API_KEY?.trim()`, only when non-empty |
+| `Mcp-Session-Id`       | session id, only when known                            |
+| `MCP-Protocol-Version` | `2025-03-26`, only when a session id is sent           |
 
 The request `signal` is the caller's signal combined with a 15 s timeout
 (§9, `getRequestSignal`). The response's `mcp-session-id` header, when present,
@@ -298,7 +298,7 @@ Given raw body text and an optional `content-type`:
 5. If the parsed payload is not a record, throw
    `Exa MCP returned an invalid JSON-RPC response`.
 
-**Critical invariant:** a JSON body that merely *contains* the substring
+**Critical invariant:** a JSON body that merely _contains_ the substring
 `data:` (for example a search result about the URL scheme `data:`) MUST be
 routed to the JSON parser, not the SSE parser. The `looksSSE` check keys on the
 content-type and on `data:`/`event:` at the **start of a line**, not on an
@@ -384,6 +384,7 @@ Given the `McpToolResult` and normalized params:
   ```
 
   where `<seconds> = ceil(15000 / 1000) = 15`.
+
 - `execFile` options: `encoding: "utf8"`, `maxBuffer: 4 * 1024 * 1024`
   (4194304 bytes), `timeout: 15000`, and the combined request signal.
 - Empty/whitespace stdout throws `Obscura returned empty DuckDuckGo HTML`.
@@ -394,7 +395,7 @@ Given normalized params, the query string is composed of, in order:
 
 1. the raw `query`;
 2. when `allowedDomains` is non-empty, a parenthesized group
-   `(site:a.com OR site:b.com)` (domains joined by ` OR `, each prefixed
+   `(site:a.com OR site:b.com)` (domains joined by `OR`, each prefixed
    `site:`);
 3. one `-site:<domain>` term per `blockedDomains` entry.
 
@@ -463,7 +464,7 @@ Evaluated in this exact order:
 `/challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/i` and
 returns the fixed reason
 `DuckDuckGo returned an anti-bot challenge page`. It MUST only be consulted
-when zero results parsed, so that snippet text (e.g. a search *about* "HTTP
+when zero results parsed, so that snippet text (e.g. a search _about_ "HTTP
 429") cannot trip the breaker.
 
 ### 7.7 Failure semantics
@@ -605,16 +606,16 @@ Machine-checked by `tests/doc-parity.test.ts`:
 Additional literals pinned by the behavior tests rather than the parity test
 (they are not exported from the entry point):
 
-| Literal | Value |
-|---|---|
-| Exa tool names | `web_search_exa`, `web_search_advanced_exa` |
-| Exa protocol version | `2025-03-26` |
-| Exa `textMaxCharacters` | `1000` |
-| Exa client identity | `pi-web-search` / `1.0.0` |
-| Obscura command | `obscura` |
-| Obscura output cap | `4 * 1024 * 1024` bytes |
-| DuckDuckGo Lite URL | `https://lite.duckduckgo.com/lite` |
-| DDG retry count / base | `1` / `1000` ms |
+| Literal                 | Value                                       |
+| ----------------------- | ------------------------------------------- |
+| Exa tool names          | `web_search_exa`, `web_search_advanced_exa` |
+| Exa protocol version    | `2025-03-26`                                |
+| Exa `textMaxCharacters` | `1000`                                      |
+| Exa client identity     | `pi-web-search` / `1.0.0`                   |
+| Obscura command         | `obscura`                                   |
+| Obscura output cap      | `4 * 1024 * 1024` bytes                     |
+| DuckDuckGo Lite URL     | `https://lite.duckduckgo.com/lite`          |
+| DDG retry count / base  | `1` / `1000` ms                             |
 
 Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`
 (`clampCooldown`).
@@ -623,25 +624,25 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`
 
 ## 10. Error taxonomy
 
-| Condition | Type / message |
-|---|---|
-| Query too short | `Error`: `Search query must be at least 2 characters long` |
-| Bad `numResults` | `Error`: `numResults must be an integer between 1 and 20` |
-| Blank / invalid domain | `Error`: `Invalid domain: <value>` |
-| Exa non-2xx | `Error`: `Exa MCP returned HTTP <status>[: <body ≤ 300>]` |
-| Exa JSON-RPC error | `Error`: `Exa MCP error (<code>): <message>` |
-| Exa tool error | `Error`: tool text or `Exa MCP search failed` |
-| Exa no result | `Error`: `Exa MCP returned no tool result` |
-| Exa 401/403 | `Error`: `Exa web search is unavailable (<detail>). Set EXA_API_KEY …` |
-| Exa quota/rate limit | `Error`: `Exa quota or rate limit was reached (<detail>). Call web_search_ddg …` |
-| Exa other | `Error`: `Exa web search is unavailable (<detail>). Call web_search_ddg …` |
-| Obscura missing | `Error`: `obscura not found on PATH (required for web_search_ddg); …` |
-| DDG generic | `Error`: `DuckDuckGo web search is unavailable (<detail>). …` |
-| DDG challenge | `DuckDuckGoUnavailableError(reason, retryAt)` |
-| DDG drift | `DuckDuckGoDriftError`: `DuckDuckGo returned results but none could be parsed; …` |
-| Circuit open | `DuckDuckGoUnavailableError`: `DuckDuckGo is temporarily unavailable; retry in about <n>s` |
-| Obscura empty output | `Error`: `Obscura returned empty DuckDuckGo HTML` (retryable) |
-| Node too old | `Error`: `pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)` |
+| Condition              | Type / message                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| Query too short        | `Error`: `Search query must be at least 2 characters long`                                 |
+| Bad `numResults`       | `Error`: `numResults must be an integer between 1 and 20`                                  |
+| Blank / invalid domain | `Error`: `Invalid domain: <value>`                                                         |
+| Exa non-2xx            | `Error`: `Exa MCP returned HTTP <status>[: <body ≤ 300>]`                                  |
+| Exa JSON-RPC error     | `Error`: `Exa MCP error (<code>): <message>`                                               |
+| Exa tool error         | `Error`: tool text or `Exa MCP search failed`                                              |
+| Exa no result          | `Error`: `Exa MCP returned no tool result`                                                 |
+| Exa 401/403            | `Error`: `Exa web search is unavailable (<detail>). Set EXA_API_KEY …`                     |
+| Exa quota/rate limit   | `Error`: `Exa quota or rate limit was reached (<detail>). Call web_search_ddg …`           |
+| Exa other              | `Error`: `Exa web search is unavailable (<detail>). Call web_search_ddg …`                 |
+| Obscura missing        | `Error`: `obscura not found on PATH (required for web_search_ddg); …`                      |
+| DDG generic            | `Error`: `DuckDuckGo web search is unavailable (<detail>). …`                              |
+| DDG challenge          | `DuckDuckGoUnavailableError(reason, retryAt)`                                              |
+| DDG drift              | `DuckDuckGoDriftError`: `DuckDuckGo returned results but none could be parsed; …`          |
+| Circuit open           | `DuckDuckGoUnavailableError`: `DuckDuckGo is temporarily unavailable; retry in about <n>s` |
+| Obscura empty output   | `Error`: `Obscura returned empty DuckDuckGo HTML` (retryable)                              |
+| Node too old           | `Error`: `pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)`            |
 
 All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
 
@@ -656,15 +657,15 @@ The Node guard message references 20.3 because that is the lower bound for
 Tests and fixtures reference `P1`–`P7`, inherited from the original review
 findings. They map to behaviors as follows:
 
-| Label | Behavior |
-|---|---|
-| `P1` | Content-type-aware MCP parsing (a JSON body containing `data:` is not misrouted to SSE) |
-| `P2` | Abort isolation for shared in-flight work |
-| `P3` | Strict rejection of blank domain entries |
-| `P4` | Typed retry policy and success-only spacing penalty |
-| `P5` | Tolerant URL parsing, strict domain matching |
-| `P6` | Never surface DuckDuckGo self-links as results |
-| `P7` | Actionable errors (auth hint, Obscura PATH hint, honest `resultCount`) |
+| Label | Behavior                                                                                |
+| ----- | --------------------------------------------------------------------------------------- |
+| `P1`  | Content-type-aware MCP parsing (a JSON body containing `data:` is not misrouted to SSE) |
+| `P2`  | Abort isolation for shared in-flight work                                               |
+| `P3`  | Strict rejection of blank domain entries                                                |
+| `P4`  | Typed retry policy and success-only spacing penalty                                     |
+| `P5`  | Tolerant URL parsing, strict domain matching                                            |
+| `P6`  | Never surface DuckDuckGo self-links as results                                          |
+| `P7`  | Actionable errors (auth hint, Obscura PATH hint, honest `resultCount`)                  |
 
 ---
 
@@ -674,15 +675,15 @@ The behaviors above are pinned by these artifacts. `tests/behavior/*.test.ts`
 runs them against the implementation using the committed fixtures, and
 `npm test` runs the whole set.
 
-| Path | Pins |
-|---|---|
-| `tests/fixtures/exa/sse-multiframe.txt` | §6.5 last-JSON-frame selection |
-| `tests/fixtures/exa/json-with-data-colon.json` | §6.4 the `data:`-substring invariant |
-| `tests/fixtures/exa/structured-results.json` | §6.6 title/snippet precedence |
-| `tests/fixtures/exa/plain-text.txt` | §6.6 unstructured path, `resultCount: 0` |
-| `tests/fixtures/ddg/lite-results.html` | §7.3 parsing of links + snippets |
-| `tests/fixtures/ddg/entities.html` | §7.5 entity decoding |
-| `tests/fixtures/ddg/selflink.html` | §7.4 / `P6` no DDG self-links |
-| `tests/fixtures/ddg/challenge.html` | §7.6 challenge classification |
-| `tests/fixtures/ddg/drift.html` | §7.6 drift classification |
-| `tests/fixtures/ddg/empty.html` | §7.6 empty classification |
+| Path                                           | Pins                                     |
+| ---------------------------------------------- | ---------------------------------------- |
+| `tests/fixtures/exa/sse-multiframe.txt`        | §6.5 last-JSON-frame selection           |
+| `tests/fixtures/exa/json-with-data-colon.json` | §6.4 the `data:`-substring invariant     |
+| `tests/fixtures/exa/structured-results.json`   | §6.6 title/snippet precedence            |
+| `tests/fixtures/exa/plain-text.txt`            | §6.6 unstructured path, `resultCount: 0` |
+| `tests/fixtures/ddg/lite-results.html`         | §7.3 parsing of links + snippets         |
+| `tests/fixtures/ddg/entities.html`             | §7.5 entity decoding                     |
+| `tests/fixtures/ddg/selflink.html`             | §7.4 / `P6` no DDG self-links            |
+| `tests/fixtures/ddg/challenge.html`            | §7.6 challenge classification            |
+| `tests/fixtures/ddg/drift.html`                | §7.6 drift classification                |
+| `tests/fixtures/ddg/empty.html`                | §7.6 empty classification                |

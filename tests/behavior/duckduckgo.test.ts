@@ -58,15 +58,19 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
 
   it("filters client-side by allowed and blocked domains", async () => {
     const html = await readFixture("ddg", "lite-results.html");
-    const blocked = impl.parseDuckDuckGoResults(html, [], [
-      "example.com",
-    ]) as any[];
+    const blocked = impl.parseDuckDuckGoResults(
+      html,
+      [],
+      ["example.com"],
+    ) as any[];
     assert.equal(blocked.length, 1);
     assert.equal(blocked[0].url, "https://direct.example.org/two");
 
-    const allowed = impl.parseDuckDuckGoResults(html, [
-      "example.com",
-    ], []) as any[];
+    const allowed = impl.parseDuckDuckGoResults(
+      html,
+      ["example.com"],
+      [],
+    ) as any[];
     assert.equal(allowed.length, 1);
     assert.equal(allowed[0].url, "https://example.com/one");
   });

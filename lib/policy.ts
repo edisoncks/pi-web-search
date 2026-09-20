@@ -53,7 +53,7 @@ export function getRequestSignal(signal: AbortSignal | undefined): AbortSignal {
     typeof (AbortSignal as unknown as { any?: unknown }).any !== "function"
   ) {
     throw new Error(
-      "pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)"
+      "pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)",
     );
   }
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
@@ -71,10 +71,15 @@ export function shortErrorMessage(error: unknown): string {
 
 export function throwIfAborted(signal: AbortSignal | undefined): void {
   if (!signal?.aborted) return;
-  throw signal.reason ?? new DOMException("The operation was aborted", "AbortError");
+  throw (
+    signal.reason ?? new DOMException("The operation was aborted", "AbortError")
+  );
 }
 
-export function waitWithSignal(ms: number, signal: AbortSignal | undefined): Promise<void> {
+export function waitWithSignal(
+  ms: number,
+  signal: AbortSignal | undefined,
+): Promise<void> {
   throwIfAborted(signal);
   if (ms <= 0) return Promise.resolve();
 
@@ -87,7 +92,10 @@ export function waitWithSignal(ms: number, signal: AbortSignal | undefined): Pro
     };
     const onAbort = () => {
       cleanup();
-      reject(signal?.reason ?? new DOMException("The operation was aborted", "AbortError"));
+      reject(
+        signal?.reason ??
+          new DOMException("The operation was aborted", "AbortError"),
+      );
     };
 
     timer = setTimeout(() => {
@@ -109,7 +117,10 @@ export function waitForPromiseWithSignal<T>(
   return new Promise<T>((resolve, reject) => {
     const onAbort = () => {
       cleanup();
-      reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"));
+      reject(
+        signal.reason ??
+          new DOMException("The operation was aborted", "AbortError"),
+      );
     };
     const cleanup = () => signal.removeEventListener("abort", onAbort);
 
@@ -145,7 +156,9 @@ export function markDuckDuckGoUnavailable(
   return state.unavailableUntil;
 }
 
-export function createCircuitOpenError(state: DuckDuckGoState): DuckDuckGoUnavailableError {
+export function createCircuitOpenError(
+  state: DuckDuckGoState,
+): DuckDuckGoUnavailableError {
   const retryAt = state.unavailableUntil;
   const seconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1_000));
   return new DuckDuckGoUnavailableError(
@@ -191,7 +204,8 @@ export async function withDuckDuckGoRequestSlot<T>(
 export function isRetryableDuckDuckGoError(error: unknown): boolean {
   if (error instanceof DuckDuckGoUnavailableError) return false;
   if (error instanceof DuckDuckGoDriftError) return false;
-  if (error instanceof DOMException && error.name === "AbortError") return false;
+  if (error instanceof DOMException && error.name === "AbortError")
+    return false;
   return true;
 }
 
@@ -240,8 +254,12 @@ export function cacheDuckDuckGoResult(
   }
 }
 
-export function formatNumberedResults(provider: string, results: WebSearchResult[]): string {
-  if (results.length === 0) return `No web search results found (provider: ${provider}).`;
+export function formatNumberedResults(
+  provider: string,
+  results: WebSearchResult[],
+): string {
+  if (results.length === 0)
+    return `No web search results found (provider: ${provider}).`;
 
   const entries = results.map((result, index) => {
     const lines = [`${index + 1}. ${result.title}`, `   URL: ${result.url}`];
@@ -249,7 +267,9 @@ export function formatNumberedResults(provider: string, results: WebSearchResult
     return lines.join("\n");
   });
 
-  return [`Web search results (provider: ${provider}):`, ...entries].join("\n\n");
+  return [`Web search results (provider: ${provider}):`, ...entries].join(
+    "\n\n",
+  );
 }
 
 export function truncateSearchOutput(text: string): string {
@@ -266,7 +286,10 @@ export function truncateSearchOutput(text: string): string {
 export function formatSearchToolResult(
   provider: string,
   result: ProviderSearchResult,
-): { content: [{ type: "text"; text: string }]; details: { provider: string; resultCount: number } } {
+): {
+  content: [{ type: "text"; text: string }];
+  details: { provider: string; resultCount: number };
+} {
   return {
     content: [{ type: "text", text: truncateSearchOutput(result.text) }],
     details: {

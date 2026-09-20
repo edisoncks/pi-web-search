@@ -95,7 +95,7 @@ export function createExaSearchError(error: unknown): Error {
   // key when the server actually rejected auth.
   if (/http\s*40[13]/iu.test(detail)) {
     return new Error(
-      `Exa web search is unavailable (${detail}). Set EXA_API_KEY to use Exa, or call web_search_ddg for this search instead; do not retry web_search_exa immediately.`
+      `Exa web search is unavailable (${detail}). Set EXA_API_KEY to use Exa, or call web_search_ddg for this search instead; do not retry web_search_exa immediately.`,
     );
   }
   const reason = isExaQuotaOrRateLimitError(error)
@@ -132,7 +132,10 @@ export function parseSsePayload(body: string): unknown {
   throw new Error("Exa MCP returned an invalid SSE response");
 }
 
-export function parseMcpResponse(body: string, contentType: string | null = null): McpRpcResponse {
+export function parseMcpResponse(
+  body: string,
+  contentType: string | null = null,
+): McpRpcResponse {
   const trimmed = body.trim();
   if (!trimmed) return {};
 
@@ -149,7 +152,7 @@ export function parseMcpResponse(body: string, contentType: string | null = null
         payload = parseSsePayload(trimmed);
       } catch {
         throw new Error(
-          `Exa MCP response parsed neither as JSON (as JSON: ${shortErrorMessage(jsonError)}) nor as SSE fallback`
+          `Exa MCP response parsed neither as JSON (as JSON: ${shortErrorMessage(jsonError)}) nor as SSE fallback`,
         );
       }
     }
@@ -161,7 +164,7 @@ export function parseMcpResponse(body: string, contentType: string | null = null
         payload = JSON.parse(trimmed) as unknown;
       } catch {
         throw new Error(
-          `Exa MCP response parsed neither as SSE (as SSE: ${shortErrorMessage(sseError)}) nor as JSON fallback`
+          `Exa MCP response parsed neither as SSE (as SSE: ${shortErrorMessage(sseError)}) nor as JSON fallback`,
         );
       }
     }
@@ -211,15 +214,20 @@ export async function postMcpRequest(
 
 export function mcpError(response: McpRpcResponse): Error | undefined {
   if (!response.error) return undefined;
-  const code = response.error.code === undefined ? "" : ` (${response.error.code})`;
-  return new Error(`Exa MCP error${code}: ${response.error.message ?? "unknown error"}`);
+  const code =
+    response.error.code === undefined ? "" : ` (${response.error.code})`;
+  return new Error(
+    `Exa MCP error${code}: ${response.error.message ?? "unknown error"}`,
+  );
 }
 
 export function textFromMcpResult(result: McpToolResult): string {
   const text = (result.content ?? [])
     .filter((item) => item.type === undefined || item.type === "text")
     .map((item) => item.text)
-    .filter((item): item is string => typeof item === "string" && item.length > 0)
+    .filter(
+      (item): item is string => typeof item === "string" && item.length > 0,
+    )
     .join("\n\n")
     .trim();
 
@@ -230,14 +238,24 @@ export function textFromMcpResult(result: McpToolResult): string {
   return "";
 }
 
-function readString(record: Record<string, unknown>, key: string): string | undefined {
-  return typeof record[key] === "string" && record[key] ? record[key] : undefined;
+function readString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  return typeof record[key] === "string" && record[key]
+    ? record[key]
+    : undefined;
 }
 
-function readStringArray(record: Record<string, unknown>, key: string): string[] {
+function readStringArray(
+  record: Record<string, unknown>,
+  key: string,
+): string[] {
   const value = record[key];
   return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+    ? value.filter(
+        (item): item is string => typeof item === "string" && item.length > 0,
+      )
     : [];
 }
 
@@ -245,7 +263,9 @@ function compactText(text: string): string {
   return text.replace(/\s+/gu, " ").trim();
 }
 
-export function parseExaStructuredResults(rawText: string): ExaStructuredResult[] | undefined {
+export function parseExaStructuredResults(
+  rawText: string,
+): ExaStructuredResult[] | undefined {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawText) as unknown;
@@ -295,7 +315,8 @@ export function formatExaSearchResult(
       .filter((result) => !isDomainMatch(result.url, params.blockedDomains))
       .filter(
         (result) =>
-          params.allowedDomains.length === 0 || isDomainMatch(result.url, params.allowedDomains),
+          params.allowedDomains.length === 0 ||
+          isDomainMatch(result.url, params.allowedDomains),
       )
       .slice(0, params.numResults);
 

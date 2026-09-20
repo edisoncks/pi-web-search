@@ -23,7 +23,9 @@ export function normalizeDomains(domains: string[] | undefined): string[] {
   }
   return [
     ...new Set(
-      input.map((domain) => normalizeDomain(domain)).filter((domain) => domain.length > 0),
+      input
+        .map((domain) => normalizeDomain(domain))
+        .filter((domain) => domain.length > 0),
     ),
   ];
 }
@@ -31,7 +33,9 @@ export function normalizeDomains(domains: string[] | undefined): string[] {
 export function hostnameOf(url: string): string | undefined {
   try {
     const noSlashes = url.replace(/^\/\//u, "");
-    const u = new URL(noSlashes.includes("://") ? noSlashes : `https://${noSlashes}`);
+    const u = new URL(
+      noSlashes.includes("://") ? noSlashes : `https://${noSlashes}`,
+    );
     const hostname = u.hostname.toLowerCase().replace(/\.$/u, "");
     return hostname || undefined;
   } catch {

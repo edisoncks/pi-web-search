@@ -75,9 +75,8 @@ describe("policy behavior: domains and errors", () => {
 
   it("maps Exa 401 to an EXA_API_KEY hint", () => {
     assert.match(
-      impl.createExaSearchError(
-        new Error("Exa MCP returned HTTP 401: nope"),
-      ).message,
+      impl.createExaSearchError(new Error("Exa MCP returned HTTP 401: nope"))
+        .message,
       /EXA_API_KEY/,
     );
   });
