@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createExaSearchError, formatExaSearchResult } from "../lib/exa.js";
 import { createDuckDuckGoSearchError } from "../lib/duckduckgo.js";
 
-describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => {
+describe("createExaSearchError gives an actionable auth hint", () => {
   it("names EXA_API_KEY on 401/403", () => {
     const err401 = createExaSearchError(
       new Error("Exa MCP returned HTTP 401: unauthorized"),
@@ -36,7 +36,7 @@ describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => 
   });
 });
 
-describe("createDuckDuckGoSearchError (P7: obscura PATH hint)", () => {
+describe("createDuckDuckGoSearchError names obscura on PATH", () => {
   it("names obscura and PATH on ENOENT", () => {
     const err = createDuckDuckGoSearchError(new Error("spawn obscura ENOENT"));
     assert.match(err.message, /obscura not found on PATH/);
@@ -49,7 +49,7 @@ describe("createDuckDuckGoSearchError (P7: obscura PATH hint)", () => {
   });
 });
 
-describe("formatExaSearchResult resultCount (P7: honest zero)", () => {
+describe("formatExaSearchResult resultCount is honest", () => {
   const params = {
     query: "q",
     allowedDomains: [],

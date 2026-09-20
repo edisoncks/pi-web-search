@@ -12,7 +12,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-describe("shared in-flight wait (P2: abort isolation)", () => {
+describe("shared in-flight wait abort isolation", () => {
   it("aborting one waiter does not reject co-waiters on the same shared promise", async () => {
     const shared = deferred<string>();
     const controllerA = new AbortController();
