@@ -1,37 +1,20 @@
-import { describe, it, afterEach } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  assertSupportedRuntime,
   createDuckDuckGoState,
   getSearchSignal,
   UnsupportedRuntimeError,
+  type AbortSignalStatics,
 } from "../lib/policy.js";
 import { searchExaForTool } from "../lib/exa.js";
 import { searchDuckDuckGoForTool } from "../lib/duckduckgo.js";
 import type { NormalizedSearchParams } from "../lib/types.js";
 
-// Simulate a Node too old for AbortSignal.timeout/any by removing the statics,
-// then assert that the guard throws UnsupportedRuntimeError and that neither
-// provider wrapper rewrites it into a provider error. The descriptors are
-// captured so each static is restored exactly as Node defined it.
-const timeoutDescriptor = Object.getOwnPropertyDescriptor(
-  AbortSignal,
-  "timeout",
-);
-const anyDescriptor = Object.getOwnPropertyDescriptor(AbortSignal, "any");
-
-afterEach(() => {
-  if (timeoutDescriptor) {
-    Object.defineProperty(AbortSignal, "timeout", timeoutDescriptor);
-  }
-  if (anyDescriptor) {
-    Object.defineProperty(AbortSignal, "any", anyDescriptor);
-  }
-});
-
-function breakAbortStatics(): void {
-  Reflect.deleteProperty(AbortSignal, "timeout");
-  Reflect.deleteProperty(AbortSignal, "any");
-}
+// A Node too old for `AbortSignal.timeout`/`AbortSignal.any` is simulated by
+// injecting broken statics rather than deleting the globals, so the tests never
+// mutate shared process state.
+const brokenStatics = {} as AbortSignalStatics;
 
 const params: NormalizedSearchParams = {
   query: "hello",
@@ -41,35 +24,38 @@ const params: NormalizedSearchParams = {
 };
 
 describe("unsupported runtime guard", () => {
-  it("getSearchSignal throws a typed UnsupportedRuntimeError", () => {
-    breakAbortStatics();
+  it("assertSupportedRuntime throws a typed UnsupportedRuntimeError", () => {
     assert.throws(
-      () => getSearchSignal(undefined),
+      () => assertSupportedRuntime(brokenStatics),
       (error: unknown) => error instanceof UnsupportedRuntimeError,
     );
   });
 
   it("names the Node floor in the message", () => {
-    breakAbortStatics();
     assert.throws(
-      () => getSearchSignal(undefined),
+      () => assertSupportedRuntime(brokenStatics),
       /requires Node >=22\.19\.0/,
     );
   });
 
+  it("getSearchSignal surfaces the runtime error", () => {
+    assert.throws(
+      () => getSearchSignal(undefined, brokenStatics),
+      (error: unknown) => error instanceof UnsupportedRuntimeError,
+    );
+  });
+
   it("searchExaForTool surfaces the runtime error unchanged", async () => {
-    breakAbortStatics();
     await assert.rejects(
-      searchExaForTool(params, undefined),
+      searchExaForTool(params, undefined, brokenStatics),
       (error: unknown) => error instanceof UnsupportedRuntimeError,
     );
   });
 
   it("searchDuckDuckGoForTool surfaces the runtime error unchanged", async () => {
-    breakAbortStatics();
     const state = createDuckDuckGoState();
     await assert.rejects(
-      searchDuckDuckGoForTool(params, state, undefined),
+      searchDuckDuckGoForTool(params, state, undefined, brokenStatics),
       (error: unknown) => error instanceof UnsupportedRuntimeError,
     );
   });

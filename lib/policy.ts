@@ -55,22 +55,42 @@ export function createDuckDuckGoState(): DuckDuckGoState {
 }
 
 /**
- * Combine the caller's signal with the one timeout shared by every network
- * round trip of a single search. Call this once per search, not once per
- * request, so the 15 s bound applies to the whole search instead of resetting
- * on every handshake and retry round trip.
+ * The two `AbortSignal` statics the runtime guard needs. Injectable so tests
+ * can simulate an older runtime without mutating the global `AbortSignal`.
  */
-export function getSearchSignal(signal: AbortSignal | undefined): AbortSignal {
+export type AbortSignalStatics = Pick<typeof AbortSignal, "timeout" | "any">;
+
+/**
+ * Throw `UnsupportedRuntimeError` when the host lacks
+ * `AbortSignal.timeout`/`AbortSignal.any`. This is an environment fault, not a
+ * provider fault, so both `search*ForTool` wrappers rethrow it unchanged.
+ */
+export function assertSupportedRuntime(
+  statics: AbortSignalStatics = AbortSignal,
+): void {
   if (
-    typeof AbortSignal.timeout !== "function" ||
-    typeof (AbortSignal as unknown as { any?: unknown }).any !== "function"
+    typeof statics.timeout !== "function" ||
+    typeof statics.any !== "function"
   ) {
     throw new UnsupportedRuntimeError(
       "pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)",
     );
   }
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+}
+
+/**
+ * Combine the caller's signal with the one timeout shared by every network
+ * round trip of a single search. Call this once per search, not once per
+ * request, so the 15 s bound applies to the whole search instead of resetting
+ * on every handshake and retry round trip.
+ */
+export function getSearchSignal(
+  signal: AbortSignal | undefined,
+  statics: AbortSignalStatics = AbortSignal,
+): AbortSignal {
+  assertSupportedRuntime(statics);
+  const timeoutSignal = statics.timeout(REQUEST_TIMEOUT_MS);
+  return signal ? statics.any([signal, timeoutSignal]) : timeoutSignal;
 }
 
 export function errorMessage(error: unknown): string {
