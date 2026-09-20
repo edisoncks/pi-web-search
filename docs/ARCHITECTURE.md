@@ -44,35 +44,38 @@ between `index` and the providers; nothing below `index` imports `index`.
 
 ```text
 tool call
-├─ normalizeSearchParams  (lib/params.ts)
-│  └─ searchExaForTool  (exa.ts)
-│     └─ searchExa
-│        ├─ buildExaInitializeRequest  →  POST initialize
-│        ├─ POST notifications/initialized  (session id; mcp-session-id echoed forward)
-│        ├─ buildExaSearchRequest  →  POST tools/call
-│        ├─ parseMcpResponse  (JSON/SSE aware)
-│        └─ formatExaSearchResult
-│           ├─ parseExaStructuredResults
-│           └─ isDomainMatch filtering
-└─ formatSearchToolResult  (policy.ts)
+└─ registerWebSearchTools execute  (lib/tools.ts)
+   ├─ normalizeSearchParams  (lib/params.ts)
+   ├─ searchExaForTool  (exa.ts)
+   │  └─ searchExa
+   │     ├─ cached session id?  (ExaSessionStore, keyed by endpoint URL)
+   │     │  └─ miss: buildExaInitializeRequest → POST initialize
+   │     │           POST notifications/initialized (cache mcp-session-id)
+   │     ├─ buildExaSearchRequest  →  POST tools/call
+   │     │  └─ cached-session failure: re-handshake once, retry the call once
+   │     ├─ parseMcpResponse  (JSON/SSE aware)
+   │     └─ formatExaSearchResult
+   │        ├─ parseExaStructuredResults
+   │        └─ isDomainMatch filtering
+   └─ formatSearchToolResult  (lib/format.ts)
 ```
 
 ### DuckDuckGo (fallback)
 
 ```text
 tool call
-├─ normalizeSearchParams  (lib/params.ts)
-│  └─ searchDuckDuckGoForTool  (duckduckgo.ts)
-│     └─ searchDuckDuckGo
-│        ├─ cache hit? return cached result
-│        ├─ in-flight hit? await the shared promise
-│        └─ fetchDuckDuckGoWithRetry
-│           └─ withDuckDuckGoRequestSlot  (serialize + spacing + breaker)
-│              └─ fetchDuckDuckGoAttempt
-│                 ├─ buildObscuraArgs  →  execFile("obscura", …)
-│                 └─ classifyDuckDuckGoResponse
-│                    └─ parseDuckDuckGoResults
-└─ formatSearchToolResult  (policy.ts)
+└─ registerWebSearchTools execute  (lib/tools.ts)
+   ├─ normalizeSearchParams  (lib/params.ts)
+   ├─ searchDuckDuckGoForTool  (duckduckgo.ts)
+   │  └─ searchDuckDuckGo
+   │     ├─ cache hit? return cached result
+   │     ├─ in-flight hit? await the shared promise
+   │     └─ fetchDuckDuckGoWithRetry
+   │        └─ withDuckDuckGoRequestSlot  (serialize + spacing + breaker)
+   │           └─ fetchDuckDuckGoAttempt
+   │              ├─ buildObscuraArgs  →  execFile("obscura", …)
+   │              └─ classifyDuckDuckGoResponse  (extract + domain filter)
+   └─ formatSearchToolResult  (lib/format.ts)
 ```
 
 ## Design rationale
@@ -100,6 +103,14 @@ code, and why the implementation made them.
 - **Warn-and-try auth.** `EXA_API_KEY` is optional. Anonymous Exa use is
   attempted; only an actual HTTP 401/403 produces the key hint. This avoids
   nagging users who don't need a key.
+
+- **Exa sessions are reused, but a stale one self-heals.** The MCP handshake
+  (`initialize` + `notifications/initialized`) is identical on every search and
+  costs two extra round trips, so the session id is cached per endpoint URL
+  (which includes `?tools=`). A call that fails while reusing a cached session
+  discards it, handshakes once more, and retries once. A session established
+  within the same search is not retried, so a real tool or transport failure is
+  never issued twice, and an aborted caller is never retried.
 
 - **Honest `resultCount`.** Unstructured Exa text reports `resultCount: 0`
   rather than guessing from body content. A heuristic like "count lines

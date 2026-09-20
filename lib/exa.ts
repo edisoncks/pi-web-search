@@ -335,18 +335,59 @@ export function formatExaSearchResult(
   };
 }
 
-export async function searchExa(
-  params: NormalizedSearchParams,
-  signal: AbortSignal | undefined,
-): Promise<ProviderSearchResult> {
-  const useAdvancedTool =
-    params.allowedDomains.length > 0 || params.blockedDomains.length > 0;
-  const toolName = useAdvancedTool ? EXA_ADVANCED_TOOL : EXA_PRIMARY_TOOL;
+/**
+ * Per-endpoint MCP session ids. The Exa endpoint URL carries `?tools=`, so a
+ * session opened for `web_search_exa` is not assumed valid for
+ * `web_search_advanced_exa`; sessions are keyed by the full URL. The store is
+ * injectable so tests can keep their own state instead of sharing the module
+ * default.
+ */
+export interface ExaSessionStore {
+  get(endpoint: string): string | undefined;
+  set(endpoint: string, sessionId: string): void;
+  delete(endpoint: string): void;
+}
+
+export function createExaSessionStore(): ExaSessionStore {
+  const sessions = new Map<string, string>();
+  return {
+    get: (endpoint) => sessions.get(endpoint),
+    set: (endpoint, sessionId) => {
+      sessions.set(endpoint, sessionId);
+    },
+    delete: (endpoint) => {
+      sessions.delete(endpoint);
+    },
+  };
+}
+
+const defaultExaSessions = createExaSessionStore();
+
+function resolveExaTool(params: NormalizedSearchParams): ExaToolName {
+  return params.allowedDomains.length > 0 || params.blockedDomains.length > 0
+    ? EXA_ADVANCED_TOOL
+    : EXA_PRIMARY_TOOL;
+}
+
+function buildExaEndpoint(toolName: ExaToolName): string {
   const endpoint = new URL(EXA_MCP_URL);
   endpoint.searchParams.set("tools", toolName);
+  return endpoint.toString();
+}
 
+/**
+ * Run the MCP handshake and cache the resulting session id. The id is cached
+ * only after `notifications/initialized` succeeds, so a half-finished
+ * handshake is never reused. A server that issues no session id is not cached
+ * and is re-initialized on every search.
+ */
+async function establishExaSession(
+  endpoint: string,
+  sessions: ExaSessionStore,
+  signal: AbortSignal | undefined,
+): Promise<string | undefined> {
   const initialized = await postMcpRequest(
-    endpoint.toString(),
+    endpoint,
     buildExaInitializeRequest(),
     undefined,
     signal,
@@ -356,7 +397,7 @@ export async function searchExa(
 
   const sessionId = initialized.sessionId;
   await postMcpRequest(
-    endpoint.toString(),
+    endpoint,
     {
       jsonrpc: "2.0",
       method: "notifications/initialized",
@@ -364,9 +405,19 @@ export async function searchExa(
     sessionId,
     signal,
   );
+  if (sessionId) sessions.set(endpoint, sessionId);
+  return sessionId;
+}
 
+async function callExaTool(
+  endpoint: string,
+  toolName: ExaToolName,
+  params: NormalizedSearchParams,
+  sessionId: string | undefined,
+  signal: AbortSignal | undefined,
+): Promise<McpToolResult> {
   const called = await postMcpRequest(
-    endpoint.toString(),
+    endpoint,
     buildExaSearchRequest(params, toolName),
     sessionId,
     signal,
@@ -376,8 +427,46 @@ export async function searchExa(
   if (!called.response.result) {
     throw new Error("Exa MCP returned no tool result");
   }
+  return called.response.result;
+}
 
-  return formatExaSearchResult(called.response.result, params);
+export async function searchExa(
+  params: NormalizedSearchParams,
+  signal: AbortSignal | undefined,
+  sessions: ExaSessionStore = defaultExaSessions,
+): Promise<ProviderSearchResult> {
+  const toolName = resolveExaTool(params);
+  const endpoint = buildExaEndpoint(toolName);
+
+  const cachedSession = sessions.get(endpoint);
+  const sessionId =
+    cachedSession ?? (await establishExaSession(endpoint, sessions, signal));
+
+  let result: McpToolResult;
+  try {
+    result = await callExaTool(endpoint, toolName, params, sessionId, signal);
+  } catch (error) {
+    // A cached session may have expired server-side: drop it, handshake once
+    // more, and retry the call once. A freshly established session is never
+    // retried here, so a genuine tool or transport failure is not issued
+    // twice, and an aborted caller is never retried.
+    if (signal?.aborted || cachedSession === undefined) throw error;
+    sessions.delete(endpoint);
+    const freshSessionId = await establishExaSession(
+      endpoint,
+      sessions,
+      signal,
+    );
+    result = await callExaTool(
+      endpoint,
+      toolName,
+      params,
+      freshSessionId,
+      signal,
+    );
+  }
+
+  return formatExaSearchResult(result, params);
 }
 
 export async function searchExaForTool(
