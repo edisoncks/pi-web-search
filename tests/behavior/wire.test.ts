@@ -1,7 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import * as exa from "../../lib/exa.js";
 import * as ddg from "../../lib/duckduckgo.js";
+
+// Derive the expected client version from package.json instead of pinning a
+// literal, so a release bump cannot leave the wire version stale.
+const pkg = JSON.parse(
+  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 const params = {
   query: "hello world",
@@ -19,7 +26,7 @@ describe("wire behavior: Exa JSON-RPC bodies", () => {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "pi-web-search", version: "1.0.1" },
+        clientInfo: { name: "pi-web-search", version: pkg.version },
       },
     });
   });

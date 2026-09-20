@@ -16,6 +16,7 @@ import {
   DDG_MIN_PAUSE_MS,
 } from "../lib/policy.js";
 import { EXA_MCP_URL } from "../lib/exa.js";
+import { PACKAGE_VERSION } from "../lib/version.js";
 import {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
@@ -33,6 +34,7 @@ function extractSpecConstants(text: string): Record<string, unknown> {
 }
 
 const actual: Record<string, unknown> = {
+  PACKAGE_VERSION,
   DEFAULT_NUM_RESULTS,
   MAX_NUM_RESULTS,
   MIN_QUERY_LENGTH,
