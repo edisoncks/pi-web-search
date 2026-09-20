@@ -1,6 +1,6 @@
 // Exa provider: MCP/JSON-RPC transport over fetch plus result shaping.
 // Depends on lib/types.js (types), lib/filter.js (domain match),
-// lib/policy.js (signals, errors, formatting).
+// lib/policy.js (signals, errors), lib/format.js (output), lib/version.js.
 import { isRecord } from "./types.js";
 import type {
   McpRpcResponse,
@@ -11,7 +11,12 @@ import type {
 } from "./types.js";
 import { isDomainMatch } from "./filter.js";
 import { PACKAGE_VERSION } from "./version.js";
-import { getRequestSignal, errorMessage, shortErrorMessage } from "./policy.js";
+import {
+  getRequestSignal,
+  errorMessage,
+  shortErrorMessage,
+  UnsupportedRuntimeError,
+} from "./policy.js";
 import { formatNumberedResults } from "./format.js";
 
 export const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
@@ -479,7 +484,8 @@ export async function searchExaForTool(
   try {
     return await searchExa(params, signal);
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (signal?.aborted || error instanceof UnsupportedRuntimeError)
+      throw error;
     throw createExaSearchError(error);
   }
 }

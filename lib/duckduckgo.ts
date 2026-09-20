@@ -1,6 +1,6 @@
 // DuckDuckGo provider: lite-HTML fetch through Obscura plus result parsing.
 // Depends on lib/types.js (types), lib/filter.js (domain match),
-// lib/policy.js (state, slot, errors, signals, formatting).
+// lib/policy.js (state, slot, errors, signals), lib/format.js (output).
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { REQUEST_TIMEOUT_MS } from "./types.js";
@@ -28,6 +28,7 @@ import {
   cacheDuckDuckGoResults,
   DuckDuckGoUnavailableError,
   DuckDuckGoDriftError,
+  UnsupportedRuntimeError,
 } from "./policy.js";
 import { formatNumberedResults } from "./format.js";
 
@@ -386,7 +387,8 @@ export async function searchDuckDuckGoForTool(
   try {
     return await searchDuckDuckGo(params, state, signal);
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (signal?.aborted || error instanceof UnsupportedRuntimeError)
+      throw error;
     throw createDuckDuckGoSearchError(error);
   }
 }
