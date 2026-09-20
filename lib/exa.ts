@@ -181,6 +181,22 @@ export function parseMcpResponse(
   return payload as McpRpcResponse;
 }
 
+/**
+ * A non-2xx HTTP response from the Exa MCP endpoint. The status is preserved
+ * so the session layer can distinguish an expired session (HTTP 404, which the
+ * MCP transport spec mandates for an unknown `Mcp-Session-Id`) from a genuine
+ * request failure that must not be reissued.
+ */
+class ExaHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ExaHttpError";
+  }
+}
+
 export async function postMcpRequest(
   url: string,
   payload: Record<string, unknown>,
@@ -209,7 +225,10 @@ export async function postMcpRequest(
 
   if (!response.ok) {
     const suffix = body.trim() ? `: ${body.trim().slice(0, 300)}` : "";
-    throw new Error(`Exa MCP returned HTTP ${response.status}${suffix}`);
+    throw new ExaHttpError(
+      `Exa MCP returned HTTP ${response.status}${suffix}`,
+      response.status,
+    );
   }
 
   return {
@@ -348,7 +367,8 @@ export function formatExaSearchResult(
  * session opened for `web_search_exa` is not assumed valid for
  * `web_search_advanced_exa`; sessions are keyed by the full URL. The store is
  * injectable so tests can keep their own state instead of sharing the module
- * default.
+ * default. Concurrent first searches may each run one handshake; that duplicate
+ * is harmless and bounded to the first pair.
  */
 export interface ExaSessionStore {
   get(endpoint: string): string | undefined;
@@ -438,6 +458,13 @@ async function callExaTool(
   return called.response.result;
 }
 
+function isExpiredExaSession(error: unknown): boolean {
+  // The MCP transport spec says a request carrying an unknown or expired
+  // `Mcp-Session-Id` MUST be answered with HTTP 404. Retry only that: a JSON-RPC
+  // error, a 5xx, or a bad-request failure must not be reissued.
+  return error instanceof ExaHttpError && error.status === 404;
+}
+
 export async function searchExa(
   params: NormalizedSearchParams,
   signal: AbortSignal | undefined,
@@ -456,9 +483,16 @@ export async function searchExa(
   } catch (error) {
     // A cached session may have expired server-side: drop it, handshake once
     // more, and retry the call once. A freshly established session is never
-    // retried here, so a genuine tool or transport failure is not issued
-    // twice, and an aborted caller is never retried.
-    if (signal?.aborted || cachedSession === undefined) throw error;
+    // retried here, and neither is any failure other than the HTTP 404 that
+    // signals an expired session, so a genuine tool or transport failure is not
+    // issued twice and an aborted caller is never retried.
+    if (
+      signal?.aborted ||
+      cachedSession === undefined ||
+      !isExpiredExaSession(error)
+    ) {
+      throw error;
+    }
     sessions.delete(endpoint);
     const freshSessionId = await establishExaSession(
       endpoint,

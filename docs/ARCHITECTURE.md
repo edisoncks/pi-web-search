@@ -52,7 +52,7 @@ tool call
    │     │  └─ miss: buildExaInitializeRequest → POST initialize
    │     │           POST notifications/initialized (cache mcp-session-id)
    │     ├─ buildExaSearchRequest  →  POST tools/call
-   │     │  └─ cached-session failure: re-handshake once, retry the call once
+   │     │  └─ cached-session HTTP 404: re-handshake once, retry the call once
    │     ├─ parseMcpResponse  (JSON/SSE aware)
    │     └─ formatExaSearchResult
    │        ├─ parseExaStructuredResults
@@ -107,10 +107,12 @@ code, and why the implementation made them.
 - **Exa sessions are reused, but a stale one self-heals.** The MCP handshake
   (`initialize` + `notifications/initialized`) is identical on every search and
   costs two extra round trips, so the session id is cached per endpoint URL
-  (which includes `?tools=`). A call that fails while reusing a cached session
-  discards it, handshakes once more, and retries once. A session established
-  within the same search is not retried, so a real tool or transport failure is
-  never issued twice, and an aborted caller is never retried.
+  (which includes `?tools=`). A call that fails with HTTP 404 — the MCP signal
+  for an expired session — while reusing a cached session discards it,
+  handshakes once more, and retries once. No other failure is retried: a
+  session established within the same search, an aborted caller, a JSON-RPC
+  error, and a non-404 HTTP status all fail immediately, so a real tool or
+  transport failure is never issued twice.
 
 - **Honest `resultCount`.** Unstructured Exa text reports `resultCount: 0`
   rather than guessing from body content. A heuristic like "count lines
