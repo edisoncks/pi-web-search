@@ -179,8 +179,13 @@ export async function withDuckDuckGoRequestSlot<T>(
   });
   // The next waiter must wait for both this attempt's gate and its predecessor,
   // so a waiter that aborts while queued cannot free the slot while the current
-  // holder is still in flight.
-  state.requestQueue = previous.then(() => gate);
+  // holder is still in flight. The predecessor is always a gate chain and never
+  // rejects, but pass a rejection through so a future change cannot poison the
+  // queue and starve every waiter behind it.
+  state.requestQueue = previous.then(
+    () => gate,
+    () => gate,
+  );
 
   try {
     await waitForPromiseWithSignal(previous, signal);
