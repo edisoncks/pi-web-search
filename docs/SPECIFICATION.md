@@ -282,6 +282,11 @@ optional space), join with `\n`, trim, drop empties. `JSON.parse` candidates
   - quota/rate-limit → `Exa quota or rate limit was reached (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`
   - otherwise → `Exa web search is unavailable (<detail>). …` (same tail).
 
+The quota/rate-limit classification matches `quota`, `rate limit`, `too many
+requests`, `HTTP 429`, or `usage limit` (case-insensitive). The bare word
+`exceeded` is deliberately not a trigger, so an unrelated "response size
+exceeded" is reported as a generic Exa failure, not a quota problem.
+
 `<detail>` is `shortErrorMessage` (whitespace-collapsed, ≤ 300 chars). Aborts
 are never rewritten into provider errors.
 
