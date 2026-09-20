@@ -1,12 +1,27 @@
 # pi-web-search
 
-Two web-search tools for pi: `web_search_exa` (primary) and `web_search_ddg`
-(fallback via DuckDuckGo Lite through Obscura).
+Two web-search tools for [pi](https://pi.dev):
 
-> **`web_search_ddg` requires the [Obscura](https://github.com/h4ckf0r0day/obscura)
-> CLI, which is not bundled with this package.** Install Obscura separately by
-> following its official installation instructions, and make sure `obscura` is
-> on your `PATH`. `web_search_exa` has no external binary dependency.
+- **`web_search_exa`** — primary provider, Exa MCP over HTTPS. No external
+  binary.
+- **`web_search_ddg`** — fallback, DuckDuckGo Lite through the
+  [Obscura](https://github.com/h4ckf0r0day/obscura) CLI.
+
+The policy is **Exa first; DuckDuckGo only when Exa fails or the user explicitly
+asks for it.** It is encoded in the tools' system-prompt guidance, so the model
+follows it automatically.
+
+## Requirements
+
+- **Node `>=22.19.0`** — required by the Pi host peer dependency
+  `@earendil-works/pi-coding-agent` (it uses `fs.globSync`). The extension's own
+  `AbortSignal.timeout`/`any` guard is a lower bound at 20.3, but the host
+  governs the effective floor.
+- `EXA_API_KEY` — optional. Exa is tried anonymously; a key is only needed when
+  the server rejects the request.
+- `obscura` on `PATH` — required **only** for `web_search_ddg`. Obscura is a
+  separate dependency and is not installed by this package; install it from its
+  official instructions.
 
 ## Install
 
@@ -14,78 +29,30 @@ Two web-search tools for pi: `web_search_exa` (primary) and `web_search_ddg`
 pi install git:github.com/edisoncks/pi-web-search@v1.0.0
 ```
 
-## Layout
+## Documentation
 
-```
-index.ts            param normalization, tool schemas, pi.registerTool wiring only
-lib/types.ts        shared constants, interfaces, isRecord (no dependencies)
-lib/filter.ts       domain allow/block matching (pure, dependency-free)
-lib/policy.ts       rate limiting, cache, circuit breaker, dedup, formatting
-lib/exa.ts          Exa MCP transport + result shaping (types/filter/policy)
-lib/duckduckgo.ts   Obscura fetch + lite-HTML parsing (types/filter/policy)
-tests/              node:test suites, one file per fix (imports stay on index.ts)
-```
+- [SPECIFICATION.md](./docs/SPECIFICATION.md) — the behavioral contract: tool
+  definitions, parameter handling, wire protocols, parsers, limits, and error
+  taxonomy.
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — module roles, dependency graph,
+  data flow, and the invariants to preserve when changing the code.
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — how to run the checks and the
+  documentation contract.
 
-Dependency rule: `index → {exa, duckduckgo, policy, filter, types}`,
-`exa → {filter, types, policy}`, `duckduckgo → {filter, types, policy}`,
-`policy → {types}`, `filter → {types}`. No cycles.
+## Development
 
-## Provider contracts
-
-- **Exa first.** `searchExaForTool` performs the MCP handshake
-  (`initialize` → `notifications/initialized` → `tools/call`) against
-  `https://mcp.exa.ai/mcp`, then shapes the tool result. Responses are parsed
-  content-type-aware: `text/event-stream` (or a leading `event:`/`data:` line)
-  goes down the SSE path, everything else JSON-first with a single fallback
-  each way. A JSON body that merely *contains* the substring `data:` must
-  never be misrouted to the SSE parser.
-- **DuckDuckGo only after Exa fails** (or on explicit user request). Fetched
-  with `obscura --stealth fetch <lite-url> --dump html`. Never retried
-  immediately per the tool descriptions.
-
-## Filter authority
-
-- Exa advanced tool (`includeDomains`/`excludeDomains`) is authoritative
-  server-side when domain filters are present; structured results are
-  additionally filtered client-side with `isDomainMatch`.
-- DDG results are filtered client-side with `isDomainMatch` (query-embedded
-  `site:` operators are a hint, not the authority).
-- Hostname parsing is tolerant (`example.com/foo`, `//host/path`,
-  trailing dots, case) via `hostnameOf`, but matching stays strict
-  (`===` or `.suffix`). Any blank domain entry throws `Invalid domain`
-  instead of silently disabling the filter.
-- Unstructured Exa text reports `resultCount: 0` rather than guessing from
-  body content.
-
-## Drift contract
-
-`drift` (HTML contains `uddg=` but zero parseable results) means DDG changed
-markup. It is deterministic: fail fast with “use Exa”, no retry, no
-cooldown, no spacing penalty. Only transient I/O is retried (once).
-Challenge pages trip the 10–15 min circuit breaker; aborts never retry.
-
-## Dedup contract
-
-Concurrent identical DDG searches share one flight. Shared work runs
-signal-less; each waiter applies only its own signal on the wait, so one
-caller's abort never rejects co-waiters.
-
-## Prerequisites
-
-- Node `>=20.3` (`AbortSignal.timeout`/`any`; guarded with an actionable error).
-- `EXA_API_KEY` optional (warn-and-try): anonymous use is attempted, and
-  HTTP 401/403 responses name the key plus the DDG fallback.
-- `obscura` on `PATH` for `web_search_ddg` only. Obscura is an external
-  dependency and is not installed by this package; install it separately by
-  following the official instructions at
-  https://github.com/h4ckf0r0day/obscura. ENOENT names the binary, `PATH`, and
-  the Exa fallback. DDG redirect links without a `uddg` target are dropped
-  rather than surfaced as results.
-
-## Dev
-
-```sh
+```bash
 npm install
-npm test        # tsx --test tests/**/*.test.ts (node:test)
-npm run typecheck
+npm run verify      # typecheck + all tests
 ```
+
+Individual commands:
+
+```bash
+npm run typecheck
+npm test            # units, behavior tests, and documentation gates
+```
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
