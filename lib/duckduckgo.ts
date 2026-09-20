@@ -26,10 +26,10 @@ import {
   getDuckDuckGoCacheKey,
   getCachedDuckDuckGoResults,
   cacheDuckDuckGoResults,
-  formatNumberedResults,
   DuckDuckGoUnavailableError,
   DuckDuckGoDriftError,
 } from "./policy.js";
+import { formatNumberedResults } from "./format.js";
 
 const execFileAsync = promisify(execFile);
 

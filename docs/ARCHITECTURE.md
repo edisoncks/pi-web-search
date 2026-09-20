@@ -6,33 +6,35 @@ if the two conflict, the SPEC wins.
 
 ## Module roles
 
-| Module              | Responsibility                                                                                                            | Depends on                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                                           | —                                      |
-| `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                                 | `types`, `filter`                      |
-| `lib/filter.ts`     | Pure domain normalization and matching.                                                                                   | `types`                                |
-| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals, formatting. | `types`, Pi host                       |
-| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                                                                   | `types`                                |
-| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                             | `types`, `filter`, `policy`, `version` |
-| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                                           | `types`, `filter`, `policy`            |
-| `index.ts`          | Tool schemas, `pi.registerTool` wiring, and the single default export.                                                    | all of the above                       |
+| Module              | Responsibility                                                                                                | Depends on                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                               | —                                      |
+| `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                     | `types`, `filter`                      |
+| `lib/filter.ts`     | Pure domain normalization and matching.                                                                       | `types`                                |
+| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals. | `types`                                |
+| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                                                         | `types`, Pi host                       |
+| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                                                       | `types`                                |
+| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version` |
+| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`            |
+| `index.ts`          | Tool schemas, `pi.registerTool` wiring, and the single default export.                                        | all of the above                       |
 
 ## Dependency graph
 
 ```text
-index ──▶ { params, exa, duckduckgo, policy, types }
+index ──▶ { params, exa, duckduckgo, policy, format }
 params ──▶ { filter, types }
-exa ──▶ { filter, types, policy, version }
-duckduckgo ──▶ { filter, types, policy }
+exa ──▶ { filter, types, policy, version, format }
+duckduckgo ──▶ { filter, types, policy, format }
 policy ──▶ { types }
+format ──▶ { types, Pi host }
 filter ──▶ { types }
 version ──▶ { types }
 types ──▶ ∅
 ```
 
 The graph is acyclic. `types` is the sink so every module may depend on it;
-`filter` and `policy` are leaves below the providers; nothing below `index`
-imports `index`.
+`filter`, `policy`, and `format` are leaves below the providers; nothing below
+`index` imports `index`.
 
 ## Data flow
 
