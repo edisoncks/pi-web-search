@@ -268,6 +268,8 @@ key, and only an actual HTTP 401/403 produces a key hint (§6.7).
 
 ### 6.4 Response parsing (`parseMcpResponse`)
 
+Signature: `parseMcpResponse(body, contentType = null)`.
+
 Given raw body text and an optional `content-type`:
 
 1. If `body.trim()` is empty, return `{}` (the 202 `notifications/initialized`
@@ -389,6 +391,8 @@ These `site:` operators are hints only; authoritative filtering is §5.4.
 
 ### 7.3 HTML parsing (`parseDuckDuckGoResults`)
 
+Signature: `parseDuckDuckGoResults(html, allowedDomains = [], blockedDomains = [])`.
+
 1. Normalize `allowedDomains`/`blockedDomains` (§5.2).
 2. Find every anchor matching
    `<a ... class="...result-link..." ...>…</a>` (class token matched within the
@@ -431,6 +435,9 @@ These `site:` operators are hints only; authoritative filtering is §5.4.
   collapses all whitespace and trims.
 
 ### 7.6 Classification (`classifyDuckDuckGoResponse`)
+
+Signature: `classifyDuckDuckGoResponse(html, allowedDomains = [], blockedDomains = [])`.
+It forwards both filters to `parseDuckDuckGoResults` (§7.3).
 
 Evaluated in this exact order:
 
@@ -539,6 +546,10 @@ All DDG work is serialized through a promise queue (`state.requestQueue`):
 
 - Apply `truncateHead` with `maxBytes = 50 * 1024 (51200)` and
   `maxLines = 2000` (the Pi host defaults).
+- `truncateHead` keeps whole lines only and stops at whichever limit is hit
+  first. Exactly 2000 lines is **not** truncated; 2001 lines is.
+- If the first line alone exceeds the byte limit, the retained content is empty
+  and the notice is still appended.
 - When not truncated, return the content unchanged.
 - When truncated, append
   `\n\n[Search output truncated by pi; reduce numResults or narrow the domain filters.]`.
