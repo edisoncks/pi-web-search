@@ -1,0 +1,24 @@
+{
+  "results": [
+    {
+      "title": "Alpha",
+      "url": "https://example.com/a",
+      "summary": "Summary A",
+      "highlights": ["highlight A1", "highlight A2"],
+      "text": "text A"
+    },
+    {
+      "url": "https://example.com/b",
+      "highlights": ["highlight B1", "highlight B2"]
+    },
+    {
+      "title": "Gamma",
+      "url": "https://example.com/c",
+      "text": "text C"
+    },
+    {
+      "title": "Delta",
+      "url": "https://example.com/d"
+    }
+  ]
+}
