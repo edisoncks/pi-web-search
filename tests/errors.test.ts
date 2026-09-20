@@ -1,10 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  createExaSearchError,
-  createDuckDuckGoSearchError,
-  formatExaSearchResult,
-} from "../index.js";
+import { createExaSearchError, formatExaSearchResult } from "../lib/exa.js";
+import { createDuckDuckGoSearchError } from "../lib/duckduckgo.js";
 
 describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => {
   it("names EXA_API_KEY on 401/403", () => {

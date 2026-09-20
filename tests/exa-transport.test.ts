@@ -1,6 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { postMcpRequest } from "../index.js";
+import { postMcpRequest } from "../lib/exa.js";
 
 const realFetch = globalThis.fetch;
 

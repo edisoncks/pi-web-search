@@ -6,7 +6,7 @@ import {
   isRetryableDuckDuckGoError,
   DuckDuckGoDriftError,
   DuckDuckGoUnavailableError,
-} from "../index.js";
+} from "../lib/policy.js";
 
 describe("isRetryableDuckDuckGoError (P4: typed retry)", () => {
   it("does not retry circuit-open, drift, or abort", () => {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   resolveDuckDuckGoResultUrl,
   parseDuckDuckGoResults,
-} from "../index.js";
+} from "../lib/duckduckgo.js";
 
 describe("resolveDuckDuckGoResultUrl (P6: no DDG self-links)", () => {
   it("drops internal links without a uddg target", () => {

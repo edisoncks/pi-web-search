@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import * as impl from "../../index.js";
+import * as exa from "../../lib/exa.js";
+import * as ddg from "../../lib/duckduckgo.js";
 
 const params = {
   query: "hello world",
@@ -11,7 +12,7 @@ const params = {
 
 describe("wire behavior: Exa JSON-RPC bodies", () => {
   it("builds the initialize request", () => {
-    assert.deepEqual(impl.buildExaInitializeRequest(), {
+    assert.deepEqual(exa.buildExaInitializeRequest(), {
       jsonrpc: "2.0",
       id: 1,
       method: "initialize",
@@ -24,7 +25,7 @@ describe("wire behavior: Exa JSON-RPC bodies", () => {
   });
 
   it("builds a primary tools/call request", () => {
-    assert.deepEqual(impl.buildExaSearchRequest(params, "web_search_exa"), {
+    assert.deepEqual(exa.buildExaSearchRequest(params, "web_search_exa"), {
       jsonrpc: "2.0",
       id: 2,
       method: "tools/call",
@@ -37,7 +38,7 @@ describe("wire behavior: Exa JSON-RPC bodies", () => {
 
   it("builds an advanced tools/call request with filters and textMaxCharacters", () => {
     assert.deepEqual(
-      impl.buildExaSearchRequest(params, "web_search_advanced_exa"),
+      exa.buildExaSearchRequest(params, "web_search_advanced_exa"),
       {
         jsonrpc: "2.0",
         id: 2,
@@ -60,7 +61,7 @@ describe("wire behavior: Exa JSON-RPC bodies", () => {
 describe("wire behavior: DuckDuckGo query and Obscura argv", () => {
   it("composes site: operators", () => {
     assert.equal(
-      impl.buildDuckDuckGoQuery({
+      ddg.buildDuckDuckGoQuery({
         query: "q",
         allowedDomains: ["a.com", "b.com"],
         blockedDomains: ["c.com"],
@@ -71,7 +72,7 @@ describe("wire behavior: DuckDuckGo query and Obscura argv", () => {
   });
 
   it("builds the exact Obscura argv", () => {
-    assert.deepEqual(impl.buildObscuraArgs(params), [
+    assert.deepEqual(ddg.buildObscuraArgs(params), [
       "--stealth",
       "fetch",
       "https://lite.duckduckgo.com/lite?q=hello+world+%28site%3Aa.com%29+-site%3Ab.com",
