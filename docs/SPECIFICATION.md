@@ -428,15 +428,18 @@ Signature: `parseDuckDuckGoResults(html, allowedDomains = [], blockedDomains = [
 1. Decode HTML entities in `href`, then parse against base
    `https://duckduckgo.com`.
 2. If there is a `uddg` query parameter, parse its value as a URL;
-   - reject it when it is not `http:`/`https:`, or when its hostname ends with
-     `duckduckgo.com`;
+   - reject it when it is not `http:`/`https:`, or when its hostname is
+     `duckduckgo.com` or a subdomain (`*.duckduckgo.com`);
    - otherwise return its string form.
 3. If there is **no** `uddg`:
-   - reject when the link's hostname ends with `duckduckgo.com`
+   - reject when the link's hostname is `duckduckgo.com` or a subdomain
      (keep internal navigation out of results);
    - reject when the protocol is not `http:`/`https:`;
    - otherwise return the link's string form.
 4. Any parse failure returns `undefined`.
+
+Host matching is strict: a bare-suffix name such as `notduckduckgo.com` is
+**not** a DuckDuckGo host and is preserved (`P5`).
 
 ### 7.5 HTML entity decoding and stripping
 

@@ -42,6 +42,30 @@ describe("resolveDuckDuckGoResultUrl (P6: no DDG self-links)", () => {
       undefined,
     );
   });
+
+  it("keeps hosts that merely end in duckduckgo.com", () => {
+    assert.equal(
+      resolveDuckDuckGoResultUrl("https://notduckduckgo.com/x"),
+      "https://notduckduckgo.com/x",
+    );
+    assert.equal(
+      resolveDuckDuckGoResultUrl(
+        "/l/?uddg=https%3A%2F%2Fnotduckduckgo.com%2Fx",
+      ),
+      "https://notduckduckgo.com/x",
+    );
+  });
+
+  it("drops duckduckgo.com and its subdomains", () => {
+    assert.equal(
+      resolveDuckDuckGoResultUrl("https://duckduckgo.com/x"),
+      undefined,
+    );
+    assert.equal(
+      resolveDuckDuckGoResultUrl("https://sub.duckduckgo.com/x"),
+      undefined,
+    );
+  });
 });
 
 describe("parseDuckDuckGoResults (P6: no DDG URLs in output)", () => {
