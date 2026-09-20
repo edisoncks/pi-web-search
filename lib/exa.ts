@@ -190,7 +190,7 @@ export async function postMcpRequest(
   if (apiKey) headers["x-api-key"] = apiKey;
   if (sessionId) {
     headers["Mcp-Session-Id"] = sessionId;
-    headers["MCP-Protocol-Version"] = "2025-03-26";
+    headers["MCP-Protocol-Version"] = EXA_PROTOCOL_VERSION;
   }
 
   const response = await fetch(url, {
