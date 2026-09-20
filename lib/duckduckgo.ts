@@ -249,9 +249,10 @@ export async function fetchDuckDuckGoAttempt(
     {
       encoding: "utf8",
       maxBuffer: DDG_MAX_OUTPUT_BYTES,
-      // fetchDuckDuckGoWithRetry owns the single per-search deadline and passes
-      // it down; execFile gets that one signal and no separate `timeout` option
-      // racing the same child process.
+      // fetchDuckDuckGoWithRetry owns the authoritative per-search deadline and
+      // passes it down as this signal. Obscura also has its own `--timeout`
+      // backstop (see buildObscuraArgs); no separate `execFile` timeout is set,
+      // so the child is not raced by a third timer.
       signal,
     },
   );

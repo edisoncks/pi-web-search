@@ -255,9 +255,11 @@ truncated to 300 characters; aborts are never rewritten.
   ```
 
 - `execFile` uses `encoding: "utf8"`, `maxBuffer: 4 * 1024 * 1024`, and the
-  combined request signal (§6.7). There is no separate `execFile` `timeout`
-  racing it. Empty/whitespace stdout throws
-  `Obscura returned empty DuckDuckGo HTML` (retryable).
+  combined request signal (§6.7). Obscura's own `--timeout` is an internal
+  backstop; the combined signal is the authoritative per-search deadline. No
+  separate `execFile` `timeout` is set, so no third timer races the child.
+  Empty/whitespace stdout throws `Obscura returned empty DuckDuckGo HTML`
+  (retryable).
 
 ### 6.2 Query construction
 
