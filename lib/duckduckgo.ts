@@ -11,7 +11,7 @@ import type {
   ProviderSearchResult,
   WebSearchResult,
 } from "./types.js";
-import { normalizeDomains, isDomainMatch } from "./filter.js";
+import { isDomainMatch } from "./filter.js";
 import {
   getRequestSignal,
   errorMessage,
@@ -165,19 +165,16 @@ export function classifyDuckDuckGoResponse(
   allowedDomains: string[] = [],
   blockedDomains: string[] = [],
 ): DuckDuckGoClassification {
+  // Callers pass domain lists already normalized by normalizeSearchParams, so
+  // this classifier trusts them instead of normalizing a second time.
+  //
   // Classification must be decided before domain filtering: filtering every
   // result away is an empty success, not evidence that the parser drifted.
-  const normalizedAllowedDomains = normalizeDomains(allowedDomains);
-  const normalizedBlockedDomains = normalizeDomains(blockedDomains);
   const extracted = extractDuckDuckGoResults(html);
   if (extracted.length > 0) {
     return {
       kind: "results",
-      results: filterResultsByDomain(
-        extracted,
-        normalizedAllowedDomains,
-        normalizedBlockedDomains,
-      ),
+      results: filterResultsByDomain(extracted, allowedDomains, blockedDomains),
     };
   }
 
