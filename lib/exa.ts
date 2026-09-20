@@ -293,7 +293,7 @@ export function parseExaStructuredResults(
 
     return [
       {
-        title: readString(item, "title") ?? url,
+        title: compactText(readString(item, "title") ?? url),
         url,
         snippet,
       },

@@ -70,4 +70,12 @@ describe("Exa behavior: MCP parsing and shaping", () => {
     assert.equal(out.resultCount, 0);
     assert.match(out.text, /Title: this is not a search result/);
   });
+
+  it("collapses whitespace in structured titles", () => {
+    const raw = JSON.stringify({
+      results: [{ title: "  Alpha\n  Beta  ", url: "https://example.com/x" }],
+    });
+    const results = impl.parseExaStructuredResults(raw) as any[];
+    assert.equal(results[0].title, "Alpha Beta");
+  });
 });
