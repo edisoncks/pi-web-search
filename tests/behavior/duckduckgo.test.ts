@@ -3,10 +3,27 @@ import assert from "node:assert/strict";
 import * as impl from "../../lib/duckduckgo.js";
 import { readFixture } from "./helpers.js";
 
+/** Run the production classifier and return its results, or fail the test. */
+function parseResults(
+  html: string,
+  allowedDomains: string[] = [],
+  blockedDomains: string[] = [],
+) {
+  const classification = impl.classifyDuckDuckGoResponse(
+    html,
+    allowedDomains,
+    blockedDomains,
+  );
+  if (classification.kind !== "results") {
+    throw new Error(`expected results, got ${classification.kind}`);
+  }
+  return classification.results;
+}
+
 describe("DuckDuckGo behavior: parsing and classification", () => {
   it("parses result links and snippets", async () => {
     const html = await readFixture("ddg", "lite-results.html");
-    const results = impl.parseDuckDuckGoResults(html) as any[];
+    const results = parseResults(html);
     assert.deepEqual(results, [
       {
         title: "Example One",
@@ -23,7 +40,7 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
 
   it("decodes known entities and leaves unknown ones untouched", async () => {
     const html = await readFixture("ddg", "entities.html");
-    const results = impl.parseDuckDuckGoResults(html) as any[];
+    const results = parseResults(html);
     assert.equal(results.length, 1);
     assert.equal(results[0].title, "Tom & Jerry \u2014 caf&eacute; \u2014");
     assert.equal(results[0].snippet, "5 < 10 && 10 > 5");
@@ -31,7 +48,7 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
 
   it("drops DDG self-links and non-http targets", async () => {
     const html = await readFixture("ddg", "selflink.html");
-    const results = impl.parseDuckDuckGoResults(html) as any[];
+    const results = parseResults(html);
     assert.equal(results.length, 1);
     assert.equal(results[0].url, "https://real.example.com/page");
     assert.ok(results.every((r) => !r.url.includes("duckduckgo.com")));
@@ -58,19 +75,11 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
 
   it("filters client-side by allowed and blocked domains", async () => {
     const html = await readFixture("ddg", "lite-results.html");
-    const blocked = impl.parseDuckDuckGoResults(
-      html,
-      [],
-      ["example.com"],
-    ) as any[];
+    const blocked = parseResults(html, [], ["example.com"]);
     assert.equal(blocked.length, 1);
     assert.equal(blocked[0].url, "https://direct.example.org/two");
 
-    const allowed = impl.parseDuckDuckGoResults(
-      html,
-      ["example.com"],
-      [],
-    ) as any[];
+    const allowed = parseResults(html, ["example.com"], []);
     assert.equal(allowed.length, 1);
     assert.equal(allowed[0].url, "https://example.com/one");
   });
