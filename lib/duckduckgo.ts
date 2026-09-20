@@ -109,13 +109,21 @@ export function resolveDuckDuckGoResultUrl(href: string): string | undefined {
   }
 }
 
-export function parseDuckDuckGoResults(
-  html: string,
-  allowedDomains: string[] = [],
-  blockedDomains: string[] = [],
+function filterResultsByDomain(
+  results: WebSearchResult[],
+  allowedDomains: string[],
+  blockedDomains: string[],
 ): WebSearchResult[] {
-  const normalizedAllowedDomains = normalizeDomains(allowedDomains);
-  const normalizedBlockedDomains = normalizeDomains(blockedDomains);
+  return results.filter(
+    (result) =>
+      !isDomainMatch(result.url, blockedDomains) &&
+      (allowedDomains.length === 0 ||
+        isDomainMatch(result.url, allowedDomains)),
+  );
+}
+
+/** Extract every resolvable result, before any domain filtering. */
+function extractDuckDuckGoResults(html: string): WebSearchResult[] {
   const resultLinkPattern =
     /<a\b[^>]*\bclass\s*=\s*(['"])[^'"]*\bresult-link\b[^'"]*\1[^>]*>([\s\S]*?)<\/a>/giu;
   const matches = [...html.matchAll(resultLinkPattern)];
@@ -137,14 +145,6 @@ export function parseDuckDuckGoResults(
       /<td\b[^>]*\bclass\s*=\s*(['"])[^'"]*\bresult-snippet\b[^'"]*\1[^>]*>([\s\S]*?)<\/td>/iu,
     );
 
-    if (isDomainMatch(url, normalizedBlockedDomains)) continue;
-    if (
-      normalizedAllowedDomains.length > 0 &&
-      !isDomainMatch(url, normalizedAllowedDomains)
-    ) {
-      continue;
-    }
-
     seenUrls.add(url);
     results.push({
       title: stripHtml(match[2]),
@@ -156,13 +156,40 @@ export function parseDuckDuckGoResults(
   return results;
 }
 
+export function parseDuckDuckGoResults(
+  html: string,
+  allowedDomains: string[] = [],
+  blockedDomains: string[] = [],
+): WebSearchResult[] {
+  const normalizedAllowedDomains = normalizeDomains(allowedDomains);
+  const normalizedBlockedDomains = normalizeDomains(blockedDomains);
+  return filterResultsByDomain(
+    extractDuckDuckGoResults(html),
+    normalizedAllowedDomains,
+    normalizedBlockedDomains,
+  );
+}
+
 export function classifyDuckDuckGoResponse(
   html: string,
   allowedDomains: string[] = [],
   blockedDomains: string[] = [],
 ): DuckDuckGoClassification {
-  const results = parseDuckDuckGoResults(html, allowedDomains, blockedDomains);
-  if (results.length > 0) return { kind: "results", results };
+  // Classification must be decided before domain filtering: filtering every
+  // result away is an empty success, not evidence that the parser drifted.
+  const normalizedAllowedDomains = normalizeDomains(allowedDomains);
+  const normalizedBlockedDomains = normalizeDomains(blockedDomains);
+  const extracted = extractDuckDuckGoResults(html);
+  if (extracted.length > 0) {
+    return {
+      kind: "results",
+      results: filterResultsByDomain(
+        extracted,
+        normalizedAllowedDomains,
+        normalizedBlockedDomains,
+      ),
+    };
+  }
 
   const challenge = detectDuckDuckGoChallenge(html);
   if (challenge) return { kind: "challenge", reason: challenge };
