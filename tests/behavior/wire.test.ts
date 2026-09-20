@@ -18,7 +18,7 @@ describe("wire behavior: Exa JSON-RPC bodies", () => {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "pi-web-search", version: "1.0.0" },
+        clientInfo: { name: "pi-web-search", version: "1.0.1" },
       },
     });
   });

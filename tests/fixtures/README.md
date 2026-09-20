@@ -8,7 +8,7 @@ Payloads that pin the wire/parse/format behaviors described in
 
 All fixtures are **synthetic**. They were authored by hand to match the shapes
 the implementation handles and the DuckDuckGo Lite / Exa MCP / Obscura
-contracts as documented at `v1.0.0`. They are not captured production traffic
+contracts as documented at `v1.0.1`. They are not captured production traffic
 and contain no private data. When the upstream services change shape, update
 these fixtures (and the spec) deliberately rather than pasting live responses.
 

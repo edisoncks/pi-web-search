@@ -2,7 +2,7 @@
 
 |                           |                                                                 |
 | ------------------------- | --------------------------------------------------------------- |
-| **Specification version** | 1.0.0 (matches package `pi-web-search@1.0.0`)                   |
+| **Specification version** | 1.0.1 (matches package `pi-web-search@1.0.1`)                   |
 | **Status**                | Normative for the shipped implementation                        |
 | **Audience**              | Contributors maintaining, extending, or reviewing the extension |
 
@@ -17,7 +17,7 @@ interpreted as described in RFC 2119.
 
 > **External contracts drift.** The Exa MCP endpoint, the Obscura CLI, and the
 > DuckDuckGo Lite markup are third-party surfaces. Sections describing them are
-> written _as implemented at v1.0.0_. The committed fixtures and the behavior
+> written _as implemented at v1.0.1_. The committed fixtures and the behavior
 > tests (see §12) are the executable truth; if they disagree with
 > this prose, the fixtures win and this document is wrong.
 
@@ -234,7 +234,7 @@ Three POSTs, in order, all to the same endpoint URL:
      "params": {
        "protocolVersion": "2025-03-26",
        "capabilities": {},
-       "clientInfo": { "name": "pi-web-search", "version": "1.0.0" }
+       "clientInfo": { "name": "pi-web-search", "version": "1.0.1" }
      }
    }
    ```
@@ -624,7 +624,7 @@ Additional literals pinned by the behavior tests rather than the parity test
 | Exa tool names          | `web_search_exa`, `web_search_advanced_exa` |
 | Exa protocol version    | `2025-03-26`                                |
 | Exa `textMaxCharacters` | `1000`                                      |
-| Exa client identity     | `pi-web-search` / `1.0.0`                   |
+| Exa client identity     | `pi-web-search` / `1.0.1`                   |
 | Obscura command         | `obscura`                                   |
 | Obscura output cap      | `4 * 1024 * 1024` bytes                     |
 | DuckDuckGo Lite URL     | `https://lite.duckduckgo.com/lite`          |
