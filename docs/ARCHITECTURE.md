@@ -95,10 +95,12 @@ code, and why the implementation made them.
   cases are owned by the circuit breaker. Charging a penalty on deterministic
   failure would just delay the next real request for no reason.
 
-- **Drift is deterministic.** If DDG changed markup, an identical retry fails
-  identically. So drift throws a typed `DuckDuckGoDriftError` with no retry and
-  no cooldown, and tells the caller to use Exa. Challenge pages, by contrast,
-  are transient and trip the 10–15 minute breaker.
+- **Drift is not worth retrying.** When the page carries a web-result redirect
+  but the parser extracts nothing, an identical retry would fail identically.
+  So drift throws a typed `DuckDuckGoDriftError` with no retry and no cooldown
+  and tells the caller to use Exa. Detection is a heuristic on the served
+  markup, not a guarantee. Challenge pages, by contrast, are transient and trip
+  the 10–15 minute breaker.
 
 - **Warn-and-try auth.** `EXA_API_KEY` is optional. Anonymous Exa use is
   attempted; only an actual HTTP 401/403 produces the key hint. This avoids
@@ -151,11 +153,12 @@ know them before you touch the relevant code.
 - **Never surface DuckDuckGo self-links.** Drop `duckduckgo.com` links and links
   without a usable `uddg` target.
 - **Drift is decided before domain filtering, and filtering is not drift.**
-  `uddg=` present with zero **extracted** results is _drift_ (deterministic, no
-  cooldown); filtering every extracted result away with
-  `allowedDomains`/`blockedDomains` is an empty success, never drift. Challenge
-  markers are transient and trip the breaker. Only consult the challenge
-  detector when zero results were extracted.
+  A web-result redirect (`uddg=` with an `http(s)` target) alongside zero
+  **extracted** results is _drift_ (no retry, no cooldown); filtering every
+  extracted result away with `allowedDomains`/`blockedDomains` is an empty
+  success, never drift, and a non-web `uddg=` navigation link is empty too.
+  Challenge markers are transient and trip the breaker. Only consult the
+  challenge detector when zero results were extracted.
 - **`resultCount` is honest.** Unstructured Exa text reports `0`, never a guess.
 - **Provider casing differs by surface.** `details.provider` is lowercase
   (`exa` / `duckduckgo`); `formatNumberedResults` uses display casing (`Exa` /

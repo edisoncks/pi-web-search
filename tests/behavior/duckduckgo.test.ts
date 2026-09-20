@@ -73,6 +73,11 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
     );
   });
 
+  it("treats a non-web uddg nav link as empty, not drift", async () => {
+    const html = await readFixture("ddg", "no-results-nav.html");
+    assert.equal(impl.classifyDuckDuckGoResponse(html).kind, "empty");
+  });
+
   it("filters client-side by allowed and blocked domains", async () => {
     const html = await readFixture("ddg", "lite-results.html");
     const blocked = parseResults(html, [], ["example.com"]);

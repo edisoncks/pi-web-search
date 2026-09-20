@@ -40,6 +40,11 @@ const DDG_MAX_RETRIES = 1;
 const DDG_RETRY_BASE_MS = 1_000;
 const DUCKDUCKGO_URL = "https://lite.duckduckgo.com/lite";
 
+// A result-shaped redirect: `uddg=` carrying an http(s) target. Requiring the
+// target scheme keeps an unrelated non-web `uddg=` nav link on a no-results
+// page from being misreported as parser drift.
+const DDG_RESULT_REDIRECT = /uddg=(?:https?%3A%2F%2F|https?:\/\/)/iu;
+
 export function decodeHtmlEntities(value: string): string {
   const namedEntities: Record<string, string> = {
     amp: "&",
@@ -180,7 +185,7 @@ export function classifyDuckDuckGoResponse(
 
   const challenge = detectDuckDuckGoChallenge(html);
   if (challenge) return { kind: "challenge", reason: challenge };
-  if (/uddg=/u.test(html)) return { kind: "drift" };
+  if (DDG_RESULT_REDIRECT.test(html)) return { kind: "drift" };
   return { kind: "empty" };
 }
 
