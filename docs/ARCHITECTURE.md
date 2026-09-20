@@ -36,35 +36,35 @@ imports `index`.
 
 ```
 tool call
-  └─ normalizeSearchParams            (index.ts)
-       └─ searchExaForTool            (exa.ts)
-            └─ searchExa
-                 ├─ buildExaInitializeRequest ──▶ POST initialize     ─┐
-                 ├─ POST notifications/initialized (session id)       │ mcp-session-id
-                 └─ buildExaSearchRequest ─────▶ POST tools/call      ┘ echoed forward
-                                                    └─ parseMcpResponse (JSON/SSE aware)
-                                                         └─ formatExaSearchResult
-                                                              ├─ parseExaStructuredResults
-                                                              └─ isDomainMatch filtering
-  └─ formatSearchToolResult           (policy.ts)
+├─ normalizeSearchParams  (index.ts)
+│  └─ searchExaForTool  (exa.ts)
+│     └─ searchExa
+│        ├─ buildExaInitializeRequest  →  POST initialize
+│        ├─ POST notifications/initialized  (session id; mcp-session-id echoed forward)
+│        ├─ buildExaSearchRequest  →  POST tools/call
+│        ├─ parseMcpResponse  (JSON/SSE aware)
+│        └─ formatExaSearchResult
+│           ├─ parseExaStructuredResults
+│           └─ isDomainMatch filtering
+└─ formatSearchToolResult  (policy.ts)
 ```
 
 ### DuckDuckGo (fallback)
 
 ```
 tool call
-  └─ normalizeSearchParams            (index.ts)
-       └─ searchDuckDuckGoForTool      (duckduckgo.ts)
-            └─ searchDuckDuckGo
-                 ├─ cache hit? return
-                 ├─ in-flight hit? await shared promise
-                 └─ fetchDuckDuckGoWithRetry
-                      └─ withDuckDuckGoRequestSlot   (serialize + spacing + breaker)
-                           └─ fetchDuckDuckGoAttempt
-                                ├─ buildObscuraArgs ──▶ execFile("obscura", …)
-                                └─ classifyDuckDuckGoResponse
-                                     └─ parseDuckDuckGoResults
-  └─ formatSearchToolResult           (policy.ts)
+├─ normalizeSearchParams  (index.ts)
+│  └─ searchDuckDuckGoForTool  (duckduckgo.ts)
+│     └─ searchDuckDuckGo
+│        ├─ cache hit? return cached result
+│        ├─ in-flight hit? await the shared promise
+│        └─ fetchDuckDuckGoWithRetry
+│           └─ withDuckDuckGoRequestSlot  (serialize + spacing + breaker)
+│              └─ fetchDuckDuckGoAttempt
+│                 ├─ buildObscuraArgs  →  execFile("obscura", …)
+│                 └─ classifyDuckDuckGoResponse
+│                    └─ parseDuckDuckGoResults
+└─ formatSearchToolResult  (policy.ts)
 ```
 
 ## Design rationale
