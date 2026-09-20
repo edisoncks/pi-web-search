@@ -269,9 +269,10 @@ function readString(
   record: Record<string, unknown>,
   key: string,
 ): string | undefined {
-  return typeof record[key] === "string" && record[key]
-    ? record[key]
-    : undefined;
+  // A whitespace-only value is treated as absent so callers can fall back;
+  // returning it would collapse to "" downstream instead of falling back.
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function readStringArray(
@@ -281,7 +282,8 @@ function readStringArray(
   const value = record[key];
   return Array.isArray(value)
     ? value.filter(
-        (item): item is string => typeof item === "string" && item.length > 0,
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
       )
     : [];
 }
