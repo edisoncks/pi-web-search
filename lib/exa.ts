@@ -428,7 +428,7 @@ async function establishExaSession(
   if (initializeError) throw initializeError;
 
   const sessionId = initialized.sessionId;
-  await postMcpRequest(
+  const notified = await postMcpRequest(
     endpoint,
     {
       jsonrpc: "2.0",
@@ -437,6 +437,8 @@ async function establishExaSession(
     sessionId,
     signal,
   );
+  const notifyError = mcpError(notified.response);
+  if (notifyError) throw notifyError;
   if (sessionId) sessions.set(endpoint, sessionId);
   return sessionId;
 }

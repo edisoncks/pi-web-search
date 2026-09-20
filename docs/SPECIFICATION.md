@@ -161,7 +161,10 @@ separate sessions. Establishing a session is two POSTs:
    `clientInfo.version` is `PACKAGE_VERSION` (§8) — never a literal.
 
 2. **`notifications/initialized`** — no `id`, sent with the session id from step
-   1: `{ "jsonrpc": "2.0", "method": "notifications/initialized" }`.
+   1: `{ "jsonrpc": "2.0", "method": "notifications/initialized" }`. A JSON-RPC
+   error in its response aborts the handshake and the session id is **not**
+   cached, so the next search starts a fresh handshake instead of trusting a
+   half-finished one.
 
 A search is then one `tools/call` (`id: 2`) whose `params.name` is the selected
 tool and whose `params.arguments` contains `query` and `numResults`. For the

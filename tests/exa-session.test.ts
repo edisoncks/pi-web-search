@@ -195,6 +195,30 @@ describe("Exa MCP session reuse", () => {
     assert.equal(toolCalls, 2);
   });
 
+  it("does not cache a session whose notifications/initialized fails", async () => {
+    let initializes = 0;
+    installFetch((body) => {
+      if (body.method === "initialize") {
+        initializes += 1;
+        return initializeResponse(`sess-${initializes}`);
+      }
+      if (body.method === "notifications/initialized") {
+        return jsonResponse({
+          jsonrpc: "2.0",
+          error: { code: -32600, message: "bad notification" },
+        });
+      }
+      return searchResponse();
+    });
+
+    const sessions = createExaSessionStore();
+    await assert.rejects(searchExa(base, undefined, sessions), /Exa MCP error/);
+    // A half-finished handshake must not be reused, so the next search starts
+    // a fresh one instead of trusting the id from the failed handshake.
+    await assert.rejects(searchExa(base, undefined, sessions), /Exa MCP error/);
+    assert.equal(initializes, 2);
+  });
+
   it("does not cache a server that issues no session id", async () => {
     const methods: string[] = [];
     installFetch((body) => {
