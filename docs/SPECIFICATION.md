@@ -59,15 +59,18 @@ extension factory `(pi: ExtensionAPI) => void`. There are no named exports;
 `tests/api-surface.test.ts` fails if one is added. Everything else is internal
 and imported directly by tests:
 
-| Module              | Responsibility                                                           |
-| ------------------- | ------------------------------------------------------------------------ |
-| `lib/types.ts`      | Constants and interfaces. No imports.                                    |
-| `lib/params.ts`     | `normalizeSearchParams` and the TypeBox parameter schema.                |
-| `lib/filter.ts`     | Domain normalization and matching.                                       |
-| `lib/policy.ts`     | Rate limiting, cache, breaker, request serialization, dedup, formatting. |
-| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                  |
-| `lib/exa.ts`        | Exa MCP transport and result shaping.                                    |
-| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite parsing.                               |
+| Module              | Responsibility                                                             |
+| ------------------- | -------------------------------------------------------------------------- |
+| `lib/types.ts`      | Constants and interfaces. No imports.                                      |
+| `lib/params.ts`     | `normalizeSearchParams` and the TypeBox parameter schema.                  |
+| `lib/filter.ts`     | Domain normalization and matching.                                         |
+| `lib/policy.ts`     | Rate limiting, cache, breaker, request serialization, dedup, signals.      |
+| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                      |
+| `lib/tools.ts`      | Tool metadata, execute wiring, and the injected provider interface.        |
+| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                    |
+| `lib/exa.ts`        | Exa MCP transport and result shaping.                                      |
+| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite parsing.                                 |
+| `index.ts`          | The extension factory: shared DuckDuckGo state + `registerWebSearchTools`. |
 
 ---
 
