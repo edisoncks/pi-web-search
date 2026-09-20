@@ -318,12 +318,25 @@ export async function fetchDuckDuckGoWithRetry(
   throw new Error("DuckDuckGo request failed");
 }
 
+/** Injectable for tests: fetch the raw result set for a query. */
+export type DuckDuckGoFetch = (
+  params: NormalizedSearchParams,
+  state: DuckDuckGoState,
+  signal: AbortSignal | undefined,
+) => Promise<WebSearchResult[]>;
+
 export async function searchDuckDuckGo(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
+  fetchResults: DuckDuckGoFetch = fetchDuckDuckGoWithRetry,
 ): Promise<ProviderSearchResult> {
-  const results = await getDuckDuckGoResults(params, state, signal);
+  const results = await getDuckDuckGoResults(
+    params,
+    state,
+    signal,
+    fetchResults,
+  );
   const sliced = results.slice(0, params.numResults);
   return {
     text: formatNumberedResults("DuckDuckGo", sliced),
@@ -340,6 +353,7 @@ async function getDuckDuckGoResults(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
+  fetchResults: DuckDuckGoFetch,
 ): Promise<WebSearchResult[]> {
   const key = getDuckDuckGoCacheKey(params);
   const cached = getCachedDuckDuckGoResults(state, key);
@@ -349,18 +363,19 @@ async function getDuckDuckGoResults(
   if (pending) return waitForPromiseWithSignal(pending, signal);
 
   // Shared work must not be tied to any single waiter's signal: the first
-  // caller's abort must not reject co-waiters. Each waiter (including the
-  // creator) applies its own signal only on the wait below.
-  const request = fetchDuckDuckGoWithRetry(params, state, undefined);
-  state.inFlight.set(key, request);
-
-  try {
-    const results = await waitForPromiseWithSignal(request, signal);
+  // caller's abort must not reject co-waiters. Cache on the shared promise and
+  // keep the in-flight entry until that promise settles, so an aborting creator
+  // cannot delete it and let a duplicate fetch start.
+  const request = fetchResults(params, state, undefined).then((results) => {
     cacheDuckDuckGoResults(state, key, results);
     return results;
-  } finally {
-    if (state.inFlight.get(key) === request) state.inFlight.delete(key);
-  }
+  });
+  const tracked = request.finally(() => {
+    if (state.inFlight.get(key) === tracked) state.inFlight.delete(key);
+  });
+  state.inFlight.set(key, tracked);
+
+  return waitForPromiseWithSignal(tracked, signal);
 }
 
 export async function searchDuckDuckGoForTool(

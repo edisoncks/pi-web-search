@@ -380,8 +380,9 @@ All DDG work is serialized through `state.requestQueue`:
 - **In-flight dedup:** concurrent identical searches share one flight. The
   shared work starts **with no signal** so the first caller's abort cannot
   reject co-waiters; each waiter applies its own signal while awaiting. The
-  creator writes the cache once; the in-flight entry is removed in `finally`
-  when it is still current.
+  shared promise writes the cache once on success, and the in-flight entry is
+  removed only when that shared promise settles — not when an individual waiter
+  aborts — so an aborting creator cannot let a duplicate fetch start.
 - `searchDuckDuckGo` slices the cached/fetched set to `params.numResults` and
   formats it per call.
 
