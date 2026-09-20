@@ -108,8 +108,10 @@ and why the implementation made them.
   (`"extensions": ["./index.ts"]`) and the `pi-package` keyword.
 - `@earendil-works/pi-coding-agent` and `typebox` are `peerDependencies` with
   `"*"`, marked optional; Pi bundles them.
-- `engines.node` is `>=20.3.0`, matching the runtime guard in
-  `getRequestSignal` (`AbortSignal.timeout`/`AbortSignal.any`).
+- `engines.node` is `>=22.19.0`, matching the Pi host peer dependency
+  `@earendil-works/pi-coding-agent`. The `getRequestSignal` guard checks only
+  for `AbortSignal.timeout`/`any` (Node 20.3+), a lower bound that is **not** the
+  effective floor.
 - The `files` allowlist ships `index.ts`, `lib`, `docs`, `README.md`, and
   `LICENSE`.
 

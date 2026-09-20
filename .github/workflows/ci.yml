@@ -14,8 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # engines.node is >=20.3.0; test the floor and the current LTS line.
-        node-version: ["20.x", "22.x"]
+        # engines.node is >=22.19.0 (the Pi host peer dependency); test the
+        # floor and the current line.
+        node-version: ["22.x", "24.x"]
     steps:
       - uses: actions/checkout@v4
 

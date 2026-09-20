@@ -23,6 +23,18 @@ interpreted as described in RFC 2119.
 
 ---
 
+## 0. Runtime requirements
+
+- **Node `>=22.19.0`.** The Pi host peer dependency
+  `@earendil-works/pi-coding-agent` requires it (it uses `fs.globSync`). The
+  extension's own `getRequestSignal` guard only checks for
+  `AbortSignal.timeout`/`AbortSignal.any` (Node 20.3+); that is a lower bound,
+  **not** the effective floor.
+- `EXA_API_KEY` is optional (warn-and-try; §6.3).
+- `obscura` on `PATH` is required only for the DuckDuckGo provider (§7.1).
+
+---
+
 ## 1. Overview
 
 The extension registers exactly two LLM-callable tools:
@@ -632,6 +644,10 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`
 | Node too old | `Error`: `pi-web-search requires Node >=20.3 (AbortSignal.timeout/any missing)` |
 
 All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
+
+The Node guard message references 20.3 because that is the lower bound for
+`AbortSignal.timeout`/`any`; the effective runtime floor is Node `>=22.19.0`
+(§0).
 
 ---
 

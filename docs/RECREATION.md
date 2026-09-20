@@ -10,7 +10,9 @@ claim you *test*, not one you assert.
 
 ## Prerequisites
 
-- Node `>=20.3.0` (`AbortSignal.timeout` / `AbortSignal.any`).
+- Node `>=22.19.0` — the Pi host peer dependency requires it. The extension's
+  own `AbortSignal.timeout`/`any` guard is a lower bound at 20.3, but the host
+  governs the effective floor.
 - `typebox` and `@earendil-works/pi-coding-agent` as peer dependencies (Pi
   bundles them).
 - `obscura` on `PATH` only if you want the DuckDuckGo path to actually fetch.
