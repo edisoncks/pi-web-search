@@ -19,6 +19,70 @@ import {
 
 export const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 
+// Exa MCP wire constants. Kept as local (non-exported) values so the public
+// surface stays the three pure builders below; the SPEC pins the literals.
+const EXA_PRIMARY_TOOL = "web_search_exa";
+const EXA_ADVANCED_TOOL = "web_search_advanced_exa";
+const EXA_INITIALIZE_ID = 1;
+const EXA_TOOLS_CALL_ID = 2;
+const EXA_PROTOCOL_VERSION = "2025-03-26";
+const EXA_CLIENT_NAME = "pi-web-search";
+const EXA_CLIENT_VERSION = "1.0.0";
+const EXA_TEXT_MAX_CHARACTERS = 1_000;
+
+/** Build the JSON-RPC `initialize` request body (id 1). Pure. */
+export function buildExaInitializeRequest(): Record<string, unknown> {
+  return {
+    jsonrpc: "2.0",
+    id: EXA_INITIALIZE_ID,
+    method: "initialize",
+    params: {
+      protocolVersion: EXA_PROTOCOL_VERSION,
+      capabilities: {},
+      clientInfo: {
+        name: EXA_CLIENT_NAME,
+        version: EXA_CLIENT_VERSION,
+      },
+    },
+  };
+}
+
+/**
+ * Build the JSON-RPC `tools/call` request body (id 2). Pure.
+ *
+ * The advanced tool is selected by name: when called with
+ * `web_search_advanced_exa` the domain filters and `textMaxCharacters` are
+ * included, matching the server-side authority described in the SPEC.
+ */
+export function buildExaSearchRequest(
+  params: NormalizedSearchParams,
+  toolName: string,
+): Record<string, unknown> {
+  const useAdvancedTool = toolName === EXA_ADVANCED_TOOL;
+  const argumentsPayload: Record<string, unknown> = {
+    query: params.query,
+    numResults: params.numResults,
+  };
+  if (useAdvancedTool) {
+    if (params.allowedDomains.length > 0) {
+      argumentsPayload.includeDomains = params.allowedDomains;
+    }
+    if (params.blockedDomains.length > 0) {
+      argumentsPayload.excludeDomains = params.blockedDomains;
+    }
+    argumentsPayload.textMaxCharacters = EXA_TEXT_MAX_CHARACTERS;
+  }
+  return {
+    jsonrpc: "2.0",
+    id: EXA_TOOLS_CALL_ID,
+    method: "tools/call",
+    params: {
+      name: toolName,
+      arguments: argumentsPayload,
+    },
+  };
+}
+
 export function isExaQuotaOrRateLimitError(error: unknown): boolean {
   return /quota|rate.?limit|too many requests|http\s*429|usage limit|exceeded/iu.test(
     errorMessage(error),
@@ -258,25 +322,13 @@ export async function searchExa(
 ): Promise<ProviderSearchResult> {
   const useAdvancedTool =
     params.allowedDomains.length > 0 || params.blockedDomains.length > 0;
-  const toolName = useAdvancedTool ? "web_search_advanced_exa" : "web_search_exa";
+  const toolName = useAdvancedTool ? EXA_ADVANCED_TOOL : EXA_PRIMARY_TOOL;
   const endpoint = new URL(EXA_MCP_URL);
   endpoint.searchParams.set("tools", toolName);
 
   const initialized = await postMcpRequest(
     endpoint.toString(),
-    {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2025-03-26",
-        capabilities: {},
-        clientInfo: {
-          name: "pi-web-search",
-          version: "1.0.0",
-        },
-      },
-    },
+    buildExaInitializeRequest(),
     undefined,
     signal,
   );
@@ -294,31 +346,9 @@ export async function searchExa(
     signal,
   );
 
-  const argumentsPayload: Record<string, unknown> = {
-    query: params.query,
-    numResults: params.numResults,
-  };
-  if (useAdvancedTool) {
-    if (params.allowedDomains.length > 0) {
-      argumentsPayload.includeDomains = params.allowedDomains;
-    }
-    if (params.blockedDomains.length > 0) {
-      argumentsPayload.excludeDomains = params.blockedDomains;
-    }
-    argumentsPayload.textMaxCharacters = 1_000;
-  }
-
   const called = await postMcpRequest(
     endpoint.toString(),
-    {
-      jsonrpc: "2.0",
-      id: 2,
-      method: "tools/call",
-      params: {
-        name: toolName,
-        arguments: argumentsPayload,
-      },
-    },
+    buildExaSearchRequest(params, toolName),
     sessionId,
     signal,
   );

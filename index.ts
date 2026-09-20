@@ -59,6 +59,8 @@ export {
 } from "./lib/policy.js";
 
 export {
+  buildExaInitializeRequest,
+  buildExaSearchRequest,
   isExaQuotaOrRateLimitError,
   createExaSearchError,
   parseSsePayload,
@@ -73,6 +75,7 @@ export {
 } from "./lib/exa.js";
 
 export {
+  buildObscuraArgs,
   decodeHtmlEntities,
   stripHtml,
   resolveDuckDuckGoResultUrl,

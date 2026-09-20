@@ -186,28 +186,36 @@ export function buildDuckDuckGoQuery(params: NormalizedSearchParams): string {
   return queryParts.join(" ");
 }
 
+/**
+ * Build the Obscura argv (after the binary name) for a DuckDuckGo lite fetch.
+ * Pure: no process is spawned. The URL embeds the composed query.
+ */
+export function buildObscuraArgs(params: NormalizedSearchParams): string[] {
+  const url = new URL(DUCKDUCKGO_URL);
+  url.searchParams.set("q", buildDuckDuckGoQuery(params));
+
+  return [
+    "--stealth",
+    "fetch",
+    url.toString(),
+    "--dump",
+    "html",
+    "--quiet",
+    "--wait",
+    "0",
+    "--timeout",
+    String(Math.ceil(REQUEST_TIMEOUT_MS / 1_000)),
+  ];
+}
+
 export async function fetchDuckDuckGoAttempt(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
 ): Promise<ProviderSearchResult> {
-  const url = new URL(DUCKDUCKGO_URL);
-  url.searchParams.set("q", buildDuckDuckGoQuery(params));
-
   const { stdout } = await execFileAsync(
     OBSCURA_COMMAND,
-    [
-      "--stealth",
-      "fetch",
-      url.toString(),
-      "--dump",
-      "html",
-      "--quiet",
-      "--wait",
-      "0",
-      "--timeout",
-      String(Math.ceil(REQUEST_TIMEOUT_MS / 1_000)),
-    ],
+    buildObscuraArgs(params),
     {
       encoding: "utf8",
       maxBuffer: DDG_MAX_OUTPUT_BYTES,
