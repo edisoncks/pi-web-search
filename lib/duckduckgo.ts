@@ -24,8 +24,8 @@ import {
   withDuckDuckGoRequestSlot,
   isRetryableDuckDuckGoError,
   getDuckDuckGoCacheKey,
-  getCachedDuckDuckGoResult,
-  cacheDuckDuckGoResult,
+  getCachedDuckDuckGoResults,
+  cacheDuckDuckGoResults,
   formatNumberedResults,
   DuckDuckGoUnavailableError,
   DuckDuckGoDriftError,
@@ -252,7 +252,7 @@ export async function fetchDuckDuckGoAttempt(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
-): Promise<ProviderSearchResult> {
+): Promise<WebSearchResult[]> {
   const { stdout } = await execFileAsync(
     OBSCURA_COMMAND,
     buildObscuraArgs(params),
@@ -286,22 +286,14 @@ export async function fetchDuckDuckGoAttempt(
     );
   }
 
-  const results =
-    classification.kind === "results"
-      ? classification.results.slice(0, params.numResults)
-      : [];
-
-  return {
-    text: formatNumberedResults("DuckDuckGo", results),
-    resultCount: results.length,
-  };
+  return classification.kind === "results" ? classification.results : [];
 }
 
 export async function fetchDuckDuckGoWithRetry(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
-): Promise<ProviderSearchResult> {
+): Promise<WebSearchResult[]> {
   for (let attempt = 0; attempt <= DDG_MAX_RETRIES; attempt += 1) {
     try {
       return await withDuckDuckGoRequestSlot(state, signal, () =>
@@ -331,8 +323,26 @@ export async function searchDuckDuckGo(
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
 ): Promise<ProviderSearchResult> {
+  const results = await getDuckDuckGoResults(params, state, signal);
+  const sliced = results.slice(0, params.numResults);
+  return {
+    text: formatNumberedResults("DuckDuckGo", sliced),
+    resultCount: sliced.length,
+  };
+}
+
+/**
+ * Return the cached or fetched result set for a query, independent of
+ * `numResults`, so one DuckDuckGo page serves every result count for the same
+ * query instead of fetching once per count.
+ */
+async function getDuckDuckGoResults(
+  params: NormalizedSearchParams,
+  state: DuckDuckGoState,
+  signal: AbortSignal | undefined,
+): Promise<WebSearchResult[]> {
   const key = getDuckDuckGoCacheKey(params);
-  const cached = getCachedDuckDuckGoResult(state, key);
+  const cached = getCachedDuckDuckGoResults(state, key);
   if (cached) return cached;
 
   const pending = state.inFlight.get(key);
@@ -345,9 +355,9 @@ export async function searchDuckDuckGo(
   state.inFlight.set(key, request);
 
   try {
-    const result = await waitForPromiseWithSignal(request, signal);
-    cacheDuckDuckGoResult(state, key, result);
-    return result;
+    const results = await waitForPromiseWithSignal(request, signal);
+    cacheDuckDuckGoResults(state, key, results);
+    return results;
   } finally {
     if (state.inFlight.get(key) === request) state.inFlight.delete(key);
   }
