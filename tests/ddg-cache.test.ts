@@ -24,6 +24,23 @@ describe("DDG cache key ignores numResults (P8: one fetch per query)", () => {
     );
   });
 
+  it("is order-insensitive for the domain filters", () => {
+    assert.equal(
+      getDuckDuckGoCacheKey({
+        ...base,
+        allowedDomains: ["a.com", "b.com"],
+        blockedDomains: ["c.com", "d.com"],
+        numResults: 8,
+      }),
+      getDuckDuckGoCacheKey({
+        ...base,
+        allowedDomains: ["b.com", "a.com"],
+        blockedDomains: ["d.com", "c.com"],
+        numResults: 8,
+      }),
+    );
+  });
+
   it("stores the full result set, not a pre-sliced one", () => {
     const state = createDuckDuckGoState();
     const key = getDuckDuckGoCacheKey({ ...base, numResults: 1 });
