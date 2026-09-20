@@ -209,11 +209,13 @@ Establishing a session is three POSTs in order to the same endpoint URL:
    `blockedDomains` is non-empty), and `textMaxCharacters: 1000`.
 
 After a session is established, a search is a single `tools/call`. If a call
-that reused a **cached** session fails, the session id is discarded, the
-handshake is repeated once, and the call is retried once. A session established
-freshly within the same search is never retried, an aborted caller is never
-retried, and a server that returns no session id is not cached (so it is
-re-initialized on every search, as before).
+that reused a **cached** session fails with **HTTP 404** — the status the MCP
+transport spec mandates for an unknown or expired `Mcp-Session-Id` — the
+session id is discarded, the handshake is repeated once, and the call is
+retried once. No other failure is retried: a freshly established session, an
+aborted caller, a JSON-RPC error, or any non-404 HTTP status fails immediately.
+A server that returns no session id is not cached (so it is re-initialized on
+every search, as before).
 
 ### 6.3 Request headers
 

@@ -139,6 +139,62 @@ describe("Exa MCP session reuse", () => {
     assert.equal(toolCalls, 3);
   });
 
+  it("does not retry a non-404 failure even with a cached session", async () => {
+    let initializes = 0;
+    let toolCalls = 0;
+    installFetch((body) => {
+      if (body.method === "initialize") {
+        initializes += 1;
+        return initializeResponse(`sess-${initializes}`);
+      }
+      if (body.method === "notifications/initialized") {
+        return new Response(null, { status: 202 });
+      }
+      toolCalls += 1;
+      if (toolCalls === 2) {
+        return new Response("server error", { status: 500 });
+      }
+      return searchResponse();
+    });
+
+    const sessions = createExaSessionStore();
+    await searchExa(base, undefined, sessions);
+    await assert.rejects(searchExa(base, undefined, sessions), /HTTP 500/);
+
+    assert.equal(initializes, 1);
+    assert.equal(toolCalls, 2);
+  });
+
+  it("does not retry a JSON-RPC error even with a cached session", async () => {
+    let initializes = 0;
+    let toolCalls = 0;
+    installFetch((body) => {
+      if (body.method === "initialize") {
+        initializes += 1;
+        return initializeResponse(`sess-${initializes}`);
+      }
+      if (body.method === "notifications/initialized") {
+        return new Response(null, { status: 202 });
+      }
+      toolCalls += 1;
+      if (toolCalls === 2) {
+        return jsonResponse({
+          jsonrpc: "2.0",
+          id: 2,
+          error: { code: -32602, message: "invalid params" },
+        });
+      }
+      return searchResponse();
+    });
+
+    const sessions = createExaSessionStore();
+    await searchExa(base, undefined, sessions);
+    await assert.rejects(searchExa(base, undefined, sessions), /Exa MCP error/);
+
+    assert.equal(initializes, 1);
+    assert.equal(toolCalls, 2);
+  });
+
   it("does not cache a server that issues no session id", async () => {
     const methods: string[] = [];
     installFetch((body) => {
