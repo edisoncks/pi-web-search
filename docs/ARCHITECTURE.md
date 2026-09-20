@@ -6,14 +6,14 @@ if the two conflict, the SPEC wins.
 
 ## Module roles
 
-| Module | Responsibility | Depends on |
-|---|---|---|
-| `lib/types.ts` | Scalar constants, interfaces, the `isRecord` guard. No imports. | — |
-| `lib/filter.ts` | Pure domain normalization and matching. | `types` |
-| `lib/policy.ts` | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals, formatting. | `types`, Pi host |
-| `lib/exa.ts` | Exa MCP transport (JSON-RPC over `fetch`) and result shaping. | `types`, `filter`, `policy` |
-| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing. | `types`, `filter`, `policy` |
-| `index.ts` | Parameter normalization, tool schemas, `pi.registerTool` wiring, and the public re-export surface. | all of the above |
+| Module              | Responsibility                                                                                                            | Depends on                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                                           | —                           |
+| `lib/filter.ts`     | Pure domain normalization and matching.                                                                                   | `types`                     |
+| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals, formatting. | `types`, Pi host            |
+| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                             | `types`, `filter`, `policy` |
+| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                                           | `types`, `filter`, `policy` |
+| `index.ts`          | Parameter normalization, tool schemas, `pi.registerTool` wiring, and the public re-export surface.                        | all of the above            |
 
 ## Dependency graph
 
@@ -73,7 +73,7 @@ These are the decisions most likely to trip up a contributor changing this
 code, and why the implementation made them.
 
 - **Signal-less shared work.** Concurrent identical DDG searches share one
-  flight started *without* any caller's signal. If the shared work were tied to
+  flight started _without_ any caller's signal. If the shared work were tied to
   the first caller, that caller's abort would reject every co-waiter. Each
   waiter applies its own signal only while awaiting the shared promise
   (`waitForPromiseWithSignal`), so abort isolation is per-caller.
@@ -108,7 +108,7 @@ These are easy to break accidentally. The behavior tests pin most of them, but
 know them before you touch the relevant code.
 
 - **Parse SSE from the content-type, or from a line-leading `event:`/`data:`** —
-  never from an anywhere-occurrence of `data:`. A JSON body whose *content*
+  never from an anywhere-occurrence of `data:`. A JSON body whose _content_
   mentions `data:` must stay on the JSON path (`P1`).
 - **The last SSE `data:` frame wins.** The JSON-RPC result is the final frame.
 - **Shared in-flight DDG work carries no caller's signal.** Apply each caller's
@@ -122,7 +122,7 @@ know them before you touch the relevant code.
 - **Never surface DuckDuckGo self-links.** Drop `duckduckgo.com` links and links
   without a usable `uddg` target (`P6`).
 - **Drift and challenge are different.** `uddg=` present with zero parsed
-  results is *drift* (deterministic, no cooldown); challenge markers are
+  results is _drift_ (deterministic, no cooldown); challenge markers are
   transient and trip the breaker. Only consult the challenge detector when zero
   results parsed.
 - **`resultCount` is honest.** Unstructured Exa text reports `0`, never a guess

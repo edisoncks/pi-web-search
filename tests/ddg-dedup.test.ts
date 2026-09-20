@@ -18,8 +18,14 @@ describe("shared in-flight wait (P2: abort isolation)", () => {
     const controllerA = new AbortController();
     const controllerB = new AbortController();
 
-    const waiterA = waitForPromiseWithSignal(shared.promise, controllerA.signal);
-    const waiterB = waitForPromiseWithSignal(shared.promise, controllerB.signal);
+    const waiterA = waitForPromiseWithSignal(
+      shared.promise,
+      controllerA.signal,
+    );
+    const waiterB = waitForPromiseWithSignal(
+      shared.promise,
+      controllerB.signal,
+    );
 
     controllerA.abort(new Error("A went away"));
     await assert.rejects(waiterA, /A went away/);

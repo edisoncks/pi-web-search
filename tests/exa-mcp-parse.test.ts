@@ -28,7 +28,9 @@ describe("parseMcpResponse (P1: content-type-aware)", () => {
       {
         jsonrpc: "2.0",
         id: 2,
-        result: { content: [{ type: "text", text: "line1\ndata: value\nline3" }] },
+        result: {
+          content: [{ type: "text", text: "line1\ndata: value\nline3" }],
+        },
       },
       null,
       2,
@@ -44,10 +46,11 @@ describe("parseMcpResponse (P1: content-type-aware)", () => {
       id: 2,
       result: { content: [{ type: "text", text: "hello" }] },
     });
-    const body = `event: message\ndata: ${frame1}\n\n event: message\ndata: ${frame2}\n\n`.replace(
-      " event:",
-      "event:",
-    );
+    const body =
+      `event: message\ndata: ${frame1}\n\n event: message\ndata: ${frame2}\n\n`.replace(
+        " event:",
+        "event:",
+      );
     const out = parseMcpResponse(body, "text/event-stream");
     assert.equal(out.result?.content?.[0]?.text, "hello");
   });
@@ -58,6 +61,9 @@ describe("parseMcpResponse (P1: content-type-aware)", () => {
   });
 
   it("throws actionable error when body is neither JSON nor SSE", () => {
-    assert.throws(() => parseMcpResponse("not-json{{{", "application/json"), /neither as JSON/);
+    assert.throws(
+      () => parseMcpResponse("not-json{{{", "application/json"),
+      /neither as JSON/,
+    );
   });
 });

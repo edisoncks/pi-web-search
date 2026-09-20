@@ -16,7 +16,9 @@ describe("resolveDuckDuckGoResultUrl (P6: no DDG self-links)", () => {
 
   it("decodes valid uddg redirect targets", () => {
     assert.equal(
-      resolveDuckDuckGoResultUrl("/l/?kh=-1&uddg=https%3A%2F%2Fexample.com%2Fa"),
+      resolveDuckDuckGoResultUrl(
+        "/l/?kh=-1&uddg=https%3A%2F%2Fexample.com%2Fa",
+      ),
       "https://example.com/a",
     );
   });

@@ -87,8 +87,10 @@ export function resolveDuckDuckGoResultUrl(href: string): string | undefined {
     const dest = link.searchParams.get("uddg");
     if (!dest) {
       // Never surface duckduckgo.com navigation links as results.
-      if (link.hostname.toLowerCase().endsWith("duckduckgo.com")) return undefined;
-      if (link.protocol !== "http:" && link.protocol !== "https:") return undefined;
+      if (link.hostname.toLowerCase().endsWith("duckduckgo.com"))
+        return undefined;
+      if (link.protocol !== "http:" && link.protocol !== "https:")
+        return undefined;
       return link.toString();
     }
     let target: URL;
@@ -97,8 +99,10 @@ export function resolveDuckDuckGoResultUrl(href: string): string | undefined {
     } catch {
       return undefined;
     }
-    if (target.protocol !== "http:" && target.protocol !== "https:") return undefined;
-    if (target.hostname.toLowerCase().endsWith("duckduckgo.com")) return undefined;
+    if (target.protocol !== "http:" && target.protocol !== "https:")
+      return undefined;
+    if (target.hostname.toLowerCase().endsWith("duckduckgo.com"))
+      return undefined;
     return target.toString();
   } catch {
     return undefined;
@@ -121,7 +125,9 @@ export function parseDuckDuckGoResults(
   for (let index = 0; index < matches.length; index += 1) {
     const match = matches[index];
     const hrefMatch = match[0].match(/\bhref\s*=\s*(['"])([\s\S]*?)\1/iu);
-    const url = hrefMatch ? resolveDuckDuckGoResultUrl(hrefMatch[2]) : undefined;
+    const url = hrefMatch
+      ? resolveDuckDuckGoResultUrl(hrefMatch[2])
+      : undefined;
     if (!url || seenUrls.has(url)) continue;
 
     const sectionStart = (match.index ?? 0) + match[0].length;
@@ -167,7 +173,11 @@ export function classifyDuckDuckGoResponse(
 export function detectDuckDuckGoChallenge(html: string): string | undefined {
   // Structural markers only. Callers gate this on zero parsed results so that
   // snippet text (e.g. a search about "HTTP 429") can never trip the breaker.
-  if (/challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/iu.test(html)) {
+  if (
+    /challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/iu.test(
+      html,
+    )
+  ) {
     return "DuckDuckGo returned an anti-bot challenge page";
   }
   return undefined;
@@ -327,9 +337,13 @@ export async function searchDuckDuckGoForTool(
 }
 
 export function createDuckDuckGoSearchError(error: unknown): Error {
-  if (/spawn obscura ENOENT|ENOENT.*obscura|obscura.*not found/iu.test(errorMessage(error))) {
+  if (
+    /spawn obscura ENOENT|ENOENT.*obscura|obscura.*not found/iu.test(
+      errorMessage(error),
+    )
+  ) {
     return new Error(
-      `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (${shortErrorMessage(error)})`
+      `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (${shortErrorMessage(error)})`,
     );
   }
   return new Error(

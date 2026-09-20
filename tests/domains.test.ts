@@ -21,7 +21,10 @@ describe("normalizeDomains (P3: strict blank rejection)", () => {
     assert.deepEqual(normalizeDomains(undefined), []);
     assert.deepEqual(normalizeDomains([]), []);
     assert.deepEqual(normalizeDomains([" Example.COM "]), ["example.com"]);
-    assert.deepEqual(normalizeDomains(["a.com", "a.com", "b.com"]), ["a.com", "b.com"]);
+    assert.deepEqual(normalizeDomains(["a.com", "a.com", "b.com"]), [
+      "a.com",
+      "b.com",
+    ]);
   });
 });
 
@@ -31,12 +34,18 @@ describe("isDomainMatch (P5: tolerant parsing, strict matching)", () => {
     assert.equal(isDomainMatch("sub.example.com/a", ["example.com"]), true);
     assert.equal(isDomainMatch("//example.com/a", ["example.com"]), true);
     assert.equal(isDomainMatch("https://example.com./", ["example.com"]), true);
-    assert.equal(isDomainMatch("HTTPS://SUB.EXAMPLE.COM/", ["example.com"]), true);
+    assert.equal(
+      isDomainMatch("HTTPS://SUB.EXAMPLE.COM/", ["example.com"]),
+      true,
+    );
   });
 
   it("still rejects non-matches and garbage", () => {
     assert.equal(isDomainMatch("https://evil.com/", ["example.com"]), false);
-    assert.equal(isDomainMatch("https://evil-example.com/", ["example.com"]), false);
+    assert.equal(
+      isDomainMatch("https://evil-example.com/", ["example.com"]),
+      false,
+    );
     assert.equal(isDomainMatch("not a url", ["example.com"]), false);
     assert.equal(isDomainMatch("", ["example.com"]), false);
     assert.equal(isDomainMatch("https://example.com/", []), false);

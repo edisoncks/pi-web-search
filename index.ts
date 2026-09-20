@@ -90,15 +90,25 @@ export {
   createDuckDuckGoSearchError,
 } from "./lib/duckduckgo.js";
 
-function normalizeSearchParams(params: WebSearchParams): NormalizedSearchParams {
+function normalizeSearchParams(
+  params: WebSearchParams,
+): NormalizedSearchParams {
   const query = params.query.trim();
   if (query.length < MIN_QUERY_LENGTH) {
-    throw new Error(`Search query must be at least ${MIN_QUERY_LENGTH} characters long`);
+    throw new Error(
+      `Search query must be at least ${MIN_QUERY_LENGTH} characters long`,
+    );
   }
 
   const numResults = params.numResults ?? DEFAULT_NUM_RESULTS;
-  if (!Number.isInteger(numResults) || numResults < 1 || numResults > MAX_NUM_RESULTS) {
-    throw new Error(`numResults must be an integer between 1 and ${MAX_NUM_RESULTS}`);
+  if (
+    !Number.isInteger(numResults) ||
+    numResults < 1 ||
+    numResults > MAX_NUM_RESULTS
+  ) {
+    throw new Error(
+      `numResults must be an integer between 1 and ${MAX_NUM_RESULTS}`,
+    );
   }
 
   return {
