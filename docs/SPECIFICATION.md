@@ -158,7 +158,9 @@ separate sessions. Establishing a session is two POSTs:
    }
    ```
 
-   `clientInfo.version` is `PACKAGE_VERSION` (§8) — never a literal.
+   `clientInfo.version` is `PACKAGE_VERSION` (§8) — never a literal. When the
+   manifest is missing or unreadable, `PACKAGE_VERSION` falls back to
+   `0.0.0-unknown` instead of failing the extension import.
 
 2. **`notifications/initialized`** — no `id`, sent with the session id from step
    1: `{ "jsonrpc": "2.0", "method": "notifications/initialized" }`. A JSON-RPC
