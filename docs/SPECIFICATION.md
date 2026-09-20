@@ -534,22 +534,7 @@ All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
 
 ---
 
-## 11. Test-label legend
-
-Tests and fixtures reference `P1`–`P8`, inherited from review findings:
-
-| Label | Behavior                                                                   |
-| ----- | -------------------------------------------------------------------------- |
-| `P1`  | Content-type-aware MCP parsing (a JSON body containing `data:` stays JSON) |
-| `P2`  | Abort isolation for shared in-flight work                                  |
-| `P3`  | Strict rejection of blank domain entries                                   |
-| `P4`  | Typed retry policy and success-only spacing penalty                        |
-| `P5`  | Tolerant URL parsing, strict domain matching                               |
-| `P6`  | Never surface DuckDuckGo self-links as results                             |
-| `P7`  | Actionable errors (auth hint, Obscura PATH hint, honest `resultCount`)     |
-| `P8`  | One DuckDuckGo fetch per query regardless of `numResults`                  |
-
-## 12. Fixtures and tests
+## 11. Fixtures and tests
 
 `tests/behavior/*.test.ts` runs the committed fixtures against the
 implementation; `npm test` runs everything.
@@ -562,7 +547,7 @@ implementation; `npm test` runs everything.
 | `tests/fixtures/exa/plain-text.txt`            | §6.6 unstructured path, `resultCount: 0` |
 | `tests/fixtures/ddg/lite-results.html`         | §7.3 parsing of links + snippets         |
 | `tests/fixtures/ddg/entities.html`             | §7.5 entity decoding                     |
-| `tests/fixtures/ddg/selflink.html`             | §7.4 / `P6` no DDG self-links            |
+| `tests/fixtures/ddg/selflink.html`             | §7.4 no DDG self-links                   |
 | `tests/fixtures/ddg/challenge.html`            | §7.6 challenge classification            |
 | `tests/fixtures/ddg/drift.html`                | §7.6 drift classification                |
 | `tests/fixtures/ddg/empty.html`                | §7.6 empty classification                |

@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeDomains, isDomainMatch, hostnameOf } from "../lib/filter.js";
 
-describe("normalizeDomains (P3: strict blank rejection)", () => {
+describe("normalizeDomains rejects blank entries", () => {
   it("throws on whitespace-only entries (silent-unfiltered guard)", () => {
     assert.throws(() => normalizeDomains([" "]), /Invalid domain/);
     assert.throws(() => normalizeDomains([" ", "  "]), /Invalid domain/);
@@ -28,7 +28,7 @@ describe("normalizeDomains (P3: strict blank rejection)", () => {
   });
 });
 
-describe("isDomainMatch (P5: tolerant parsing, strict matching)", () => {
+describe("isDomainMatch parses tolerantly and matches strictly", () => {
   it("matches scheme-less URLs callers already accept in normalizeDomain", () => {
     assert.equal(isDomainMatch("example.com/foo", ["example.com"]), true);
     assert.equal(isDomainMatch("sub.example.com/a", ["example.com"]), true);

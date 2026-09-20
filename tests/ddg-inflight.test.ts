@@ -11,7 +11,7 @@ const page = [
   { title: "Three", url: "https://c.example", snippet: "s3" },
 ];
 
-describe("DDG in-flight dedup (P2: abort does not duplicate work)", () => {
+describe("DDG in-flight dedup does not duplicate work", () => {
   it("keeps shared work alive when its creator aborts", async () => {
     const state = createDuckDuckGoState();
     let calls = 0;

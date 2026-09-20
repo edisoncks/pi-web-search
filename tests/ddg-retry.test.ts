@@ -8,7 +8,7 @@ import {
   DuckDuckGoUnavailableError,
 } from "../lib/policy.js";
 
-describe("isRetryableDuckDuckGoError (P4: typed retry)", () => {
+describe("isRetryableDuckDuckGoError typed retry", () => {
   it("does not retry circuit-open, drift, or abort", () => {
     assert.equal(
       isRetryableDuckDuckGoError(
@@ -49,7 +49,7 @@ describe("isRetryableDuckDuckGoError (P4: typed retry)", () => {
   });
 });
 
-describe("withDuckDuckGoRequestSlot spacing (P4: success-only penalty)", () => {
+describe("withDuckDuckGoRequestSlot spacing is success-only", () => {
   it("does not advance nextRequestAt on deterministic failure, releases queue", async () => {
     const state = createDuckDuckGoState();
     await assert.rejects(

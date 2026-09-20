@@ -16,7 +16,7 @@ const page = [
   { title: "Three", url: "https://c.example", snippet: "s3" },
 ];
 
-describe("DDG cache key ignores numResults (P8: one fetch per query)", () => {
+describe("DDG cache key ignores numResults", () => {
   it("produces the same key for different numResults", () => {
     assert.equal(
       getDuckDuckGoCacheKey({ ...base, numResults: 5 }),

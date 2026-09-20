@@ -133,29 +133,28 @@ know them before you touch the relevant code.
 
 - **Parse SSE from the content-type, or from a line-leading `event:`/`data:`** —
   never from an anywhere-occurrence of `data:`. A JSON body whose _content_
-  mentions `data:` must stay on the JSON path (`P1`).
+  mentions `data:` must stay on the JSON path.
 - **The last SSE `data:` frame wins.** The JSON-RPC result is the final frame.
 - **Shared in-flight DDG work carries no caller's signal.** Apply each caller's
-  signal only while it awaits the shared promise (`P2`).
+  signal only while it awaits the shared promise.
 - **Spacing advances only on success.** `nextRequestAt` is updated after a
-  completed attempt, never on a deterministic failure (`P4`).
+  completed attempt, never on a deterministic failure.
 - **The request slot is a real mutex.** The queue tail chains through the
   predecessor's gate, so a waiter that aborts while queued cannot free the slot
-  and let the next request overlap the in-flight one (`P4`).
+  and let the next request overlap the in-flight one.
 - **Blank domain entries throw.** A whitespace-only entry must not silently
-  disable filtering (`P3`).
+  disable filtering.
 - **Domain matching is strict:** `hostname === domain || hostname.endsWith("." + domain)`.
-  No bare-suffix matching (`P5`).
+  No bare-suffix matching.
 - **Never surface DuckDuckGo self-links.** Drop `duckduckgo.com` links and links
-  without a usable `uddg` target (`P6`).
+  without a usable `uddg` target.
 - **Drift is decided before domain filtering, and filtering is not drift.**
   `uddg=` present with zero **extracted** results is _drift_ (deterministic, no
   cooldown); filtering every extracted result away with
   `allowedDomains`/`blockedDomains` is an empty success, never drift. Challenge
   markers are transient and trip the breaker. Only consult the challenge
   detector when zero results were extracted.
-- **`resultCount` is honest.** Unstructured Exa text reports `0`, never a guess
-  (`P7`).
+- **`resultCount` is honest.** Unstructured Exa text reports `0`, never a guess.
 - **Provider casing differs by surface.** `details.provider` is lowercase
   (`exa` / `duckduckgo`); `formatNumberedResults` uses display casing (`Exa` /
   `DuckDuckGo`).
