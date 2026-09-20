@@ -60,6 +60,52 @@ describe("withDuckDuckGoRequestSlot spacing (P4: success-only penalty)", () => {
     assert.equal(out, "ok");
   });
 
+  it("does not let an aborted waiter free the slot before the holder finishes", async () => {
+    const state = createDuckDuckGoState();
+    const order: string[] = [];
+    let releaseHolder!: () => void;
+    const holderGate = new Promise<void>((resolve) => {
+      releaseHolder = resolve;
+    });
+    const controller = new AbortController();
+
+    const holder = withDuckDuckGoRequestSlot(state, undefined, async () => {
+      order.push("holder:start");
+      await holderGate;
+      order.push("holder:end");
+      throw new DuckDuckGoDriftError("deterministic");
+    });
+    const aborted = withDuckDuckGoRequestSlot(
+      state,
+      controller.signal,
+      async () => {
+        order.push("aborted:start");
+      },
+    );
+
+    controller.abort();
+    await assert.rejects(aborted);
+
+    const next = withDuckDuckGoRequestSlot(state, undefined, async () => {
+      order.push("next:start");
+      order.push("next:end");
+    });
+
+    // The next waiter must stay blocked while the holder is still in flight.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(order, ["holder:start"]);
+
+    releaseHolder();
+    await assert.rejects(holder, /deterministic/);
+    await next;
+    assert.deepEqual(order, [
+      "holder:start",
+      "holder:end",
+      "next:start",
+      "next:end",
+    ]);
+  });
+
   it("advances nextRequestAt on success", async () => {
     const state = createDuckDuckGoState();
     const before = Date.now();

@@ -500,7 +500,10 @@ when zero results parsed, so that snippet text (e.g. a search _about_ "HTTP
 
 All DDG work is serialized through a promise queue (`state.requestQueue`):
 
-1. Chain onto the previous queue tail and take ownership of the new tail.
+1. Chain onto the previous queue tail: the new tail resolves only once **both**
+   the previous tail and this attempt's own gate have resolved. A waiter that
+   aborts while queued therefore cannot release the slot before its predecessor
+   finishes.
 2. Await the previous tail (interruptible by the caller's signal), then
    `throwIfAborted`.
 3. If `state.unavailableUntil > Date.now()`, throw `createCircuitOpenError`
