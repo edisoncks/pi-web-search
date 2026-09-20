@@ -6,23 +6,27 @@ if the two conflict, the SPEC wins.
 
 ## Module roles
 
-| Module              | Responsibility                                                                                                            | Depends on                  |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                                           | —                           |
-| `lib/filter.ts`     | Pure domain normalization and matching.                                                                                   | `types`                     |
-| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals, formatting. | `types`, Pi host            |
-| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                             | `types`, `filter`, `policy` |
-| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                                           | `types`, `filter`, `policy` |
-| `index.ts`          | Parameter normalization, tool schemas, `pi.registerTool` wiring, and the public re-export surface.                        | all of the above            |
+| Module              | Responsibility                                                                                                            | Depends on                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `lib/types.ts`      | Scalar constants, interfaces, the `isRecord` guard. No imports.                                                           | —                                      |
+| `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                                 | `types`, `filter`                      |
+| `lib/filter.ts`     | Pure domain normalization and matching.                                                                                   | `types`                                |
+| `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals, formatting. | `types`, Pi host                       |
+| `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime.                                                                   | `types`                                |
+| `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                             | `types`, `filter`, `policy`, `version` |
+| `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                                           | `types`, `filter`, `policy`            |
+| `index.ts`          | Tool schemas, `pi.registerTool` wiring, and the single default export.                                                    | all of the above                       |
 
 ## Dependency graph
 
 ```text
-index ──▶ { exa, duckduckgo, policy, filter, types }
-exa ──▶ { filter, types, policy }
+index ──▶ { params, exa, duckduckgo, policy, types }
+params ──▶ { filter, types }
+exa ──▶ { filter, types, policy, version }
 duckduckgo ──▶ { filter, types, policy }
 policy ──▶ { types }
 filter ──▶ { types }
+version ──▶ { types }
 types ──▶ ∅
 ```
 
@@ -36,7 +40,7 @@ imports `index`.
 
 ```text
 tool call
-├─ normalizeSearchParams  (index.ts)
+├─ normalizeSearchParams  (lib/params.ts)
 │  └─ searchExaForTool  (exa.ts)
 │     └─ searchExa
 │        ├─ buildExaInitializeRequest  →  POST initialize
@@ -53,7 +57,7 @@ tool call
 
 ```text
 tool call
-├─ normalizeSearchParams  (index.ts)
+├─ normalizeSearchParams  (lib/params.ts)
 │  └─ searchDuckDuckGoForTool  (duckduckgo.ts)
 │     └─ searchDuckDuckGo
 │        ├─ cache hit? return cached result
@@ -102,6 +106,11 @@ code, and why the implementation made them.
   `policy` so both the provider and the extension share one breaker/cache/queue
   without the transport modules owning cross-cutting concerns.
 
+- **One DuckDuckGo fetch per query.** The result cache key excludes
+  `numResults` and stores the raw result set, because DuckDuckGo Lite returns a
+  fixed page that the caller slices. Counting `numResults` in the key would
+  fetch the same page once per result count.
+
 ## Patterns and invariants
 
 These are easy to break accidentally. The behavior tests pin most of them, but
@@ -144,11 +153,10 @@ know them before you touch the relevant code.
 - `package.json` declares the extension via the `pi` manifest
   (`"extensions": ["./index.ts"]`) and the `pi-package` keyword.
 - `@earendil-works/pi-coding-agent` and `typebox` are `peerDependencies` with
-  `"*"`, marked optional; Pi bundles them.
-- `engines.node` is `>=22.19.0`, matching the Pi host peer dependency
-  `@earendil-works/pi-coding-agent`. The `getRequestSignal` guard checks only
-  for `AbortSignal.timeout`/`any` (Node 20.3+), a lower bound that is **not** the
-  effective floor.
+  `"*"`, marked `optional`. Pi bundles core packages, so `optional` tells npm
+  not to install a duplicate copy; the imports are nevertheless hard.
+- `engines.node` is `>=22.19.0`, matching the Pi host peer dependency. The
+  `getRequestSignal` guard reports the same floor.
 - The `files` allowlist ships `index.ts`, `lib`, `docs`, `README.md`, and
   `LICENSE`.
 
@@ -156,10 +164,10 @@ know them before you touch the relevant code.
 
 Documentation and tests are part of the code, and CI enforces it:
 
+- `tests/api-surface.test.ts` fails if `index.ts` exports anything but the
+  default factory.
 - `tests/doc-parity.test.ts` fails if a value in the SPEC's constants block
   disagrees with the code.
-- `tests/doc-coverage.test.ts` fails if an exported symbol is not named in the
-  SPEC.
 - `tests/doc-links.test.ts` fails on a broken relative link between docs.
 - `tests/behavior/*.test.ts` pins the wire/parse/format behavior against the
   committed fixtures.

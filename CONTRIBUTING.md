@@ -9,12 +9,12 @@ SPEC, the fixtures, and the behavior tests in the same change.** If you forget,
 
 The gates:
 
-| Check                        | Enforces                                                               |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `tests/doc-parity.test.ts`   | The SPEC constants block matches the code.                             |
-| `tests/doc-coverage.test.ts` | Every symbol exported by `index.ts` is named in the SPEC.              |
-| `tests/doc-links.test.ts`    | Every relative link between docs resolves.                             |
-| `tests/behavior/*.test.ts`   | The documented wire/parse/format behavior, against committed fixtures. |
+| Check                       | Enforces                                                               |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `tests/doc-parity.test.ts`  | The SPEC constants block matches the code.                             |
+| `tests/api-surface.test.ts` | `index.ts` exports only the default extension factory.                 |
+| `tests/doc-links.test.ts`   | Every relative link between docs resolves.                             |
+| `tests/behavior/*.test.ts`  | The documented wire/parse/format behavior, against committed fixtures. |
 
 ## Running
 
