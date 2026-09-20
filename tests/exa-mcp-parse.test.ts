@@ -66,4 +66,15 @@ describe("parseMcpResponse (P1: content-type-aware)", () => {
       /neither as JSON/,
     );
   });
+
+  it("rejects a JSON array as not a JSON-RPC record", () => {
+    assert.throws(
+      () => parseMcpResponse("[]", "application/json"),
+      /invalid JSON-RPC response/,
+    );
+    assert.throws(
+      () => parseMcpResponse('[{"jsonrpc":"2.0"}]', "application/json"),
+      /invalid JSON-RPC response/,
+    );
+  });
 });
