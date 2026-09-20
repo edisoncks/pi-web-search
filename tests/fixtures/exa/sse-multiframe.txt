@@ -1,0 +1,5 @@
+event: message
+data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","content":[{"type":"text","text":"EARLY_FRAME"}]}}
+
+event: message
+data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"LATE_FRAME"}]}}
