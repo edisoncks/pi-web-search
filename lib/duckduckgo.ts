@@ -286,33 +286,29 @@ export async function fetchDuckDuckGoWithRetry(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
-  attempt: DuckDuckGoAttempt = fetchDuckDuckGoAttempt,
+  fetchAttempt: DuckDuckGoAttempt = fetchDuckDuckGoAttempt,
 ): Promise<WebSearchResult[]> {
   // One deadline for the whole search, created here because this runs inside
   // the signal-less shared flight. Every retry attempt and the backoff between
   // them share it, so retries cannot extend the caller-visible bound.
   const requestSignal = getSearchSignal(signal);
 
-  for (
-    let attemptIndex = 0;
-    attemptIndex <= DDG_MAX_RETRIES;
-    attemptIndex += 1
-  ) {
+  for (let attempt = 0; attempt <= DDG_MAX_RETRIES; attempt += 1) {
     try {
       return await withDuckDuckGoRequestSlot(state, requestSignal, () =>
-        attempt(params, state, requestSignal),
+        fetchAttempt(params, state, requestSignal),
       );
     } catch (error) {
       if (
         signal?.aborted ||
-        attemptIndex >= DDG_MAX_RETRIES ||
+        attempt >= DDG_MAX_RETRIES ||
         !isRetryableDuckDuckGoError(error)
       ) {
         throw error;
       }
 
       await waitWithSignal(
-        DDG_RETRY_BASE_MS * 2 ** attemptIndex + randomJitter(DDG_JITTER_MS),
+        DDG_RETRY_BASE_MS * 2 ** attempt + randomJitter(DDG_JITTER_MS),
         requestSignal,
       );
     }
