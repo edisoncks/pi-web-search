@@ -172,7 +172,12 @@ hostname.endsWith("." + domain)` for some domain; false when the list is empty
 
 ### 6.2 JSON-RPC handshake
 
-Three POSTs in order to the same endpoint URL:
+The handshake is performed **once per session**, not once per search. The
+session id returned by `initialize` is cached per endpoint URL (the URL carries
+`?tools=`, so the primary and advanced tools have separate sessions) and reused
+by later searches.
+
+Establishing a session is three POSTs in order to the same endpoint URL:
 
 1. **`initialize`** (`id: 1`):
 
@@ -198,6 +203,13 @@ Three POSTs in order to the same endpoint URL:
    tool it additionally contains `includeDomains` (only when
    `allowedDomains` is non-empty), `excludeDomains` (only when
    `blockedDomains` is non-empty), and `textMaxCharacters: 1000`.
+
+After a session is established, a search is a single `tools/call`. If a call
+that reused a **cached** session fails, the session id is discarded, the
+handshake is repeated once, and the call is retried once. A session established
+freshly within the same search is never retried, an aborted caller is never
+retried, and a server that returns no session id is not cached (so it is
+re-initialized on every search, as before).
 
 ### 6.3 Request headers
 
