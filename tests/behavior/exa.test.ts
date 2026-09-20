@@ -1,28 +1,38 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import * as impl from "../../lib/exa.js";
+import { isRecord, type McpRpcResponse } from "../../lib/types.js";
 import { readFixture } from "./helpers.js";
+
+/** The first text block of an MCP tool result, or "" when absent. */
+function firstResultText(response: McpRpcResponse): string {
+  const item = response.result?.content?.[0];
+  assert.equal(item?.type, "text");
+  return item?.text ?? "";
+}
 
 describe("Exa behavior: MCP parsing and shaping", () => {
   it("selects the last JSON frame of an SSE stream", async () => {
     const body = await readFixture("exa", "sse-multiframe.txt");
-    const parsed = impl.parseSsePayload(body) as any;
-    assert.equal(parsed.result.content[0].text, "LATE_FRAME");
+    const parsed = impl.parseSsePayload(body);
+    assert.ok(isRecord(parsed));
+    assert.equal(firstResultText(parsed), "LATE_FRAME");
   });
 
   it("does not misroute a JSON body containing 'data:' to SSE", async () => {
     const body = await readFixture("exa", "json-with-data-colon.json");
-    const parsed = impl.parseMcpResponse(body, "application/json") as any;
     assert.equal(
-      parsed.result.content[0].text,
+      firstResultText(impl.parseMcpResponse(body, "application/json")),
       "See the data: URL scheme and event: handlers for details",
     );
   });
 
   it("parses that JSON body with a null content-type too", async () => {
     const body = await readFixture("exa", "json-with-data-colon.json");
-    const parsed = impl.parseMcpResponse(body, null) as any;
-    assert.equal(parsed.result.content[0].text.length > 0, true);
+    assert.equal(
+      firstResultText(impl.parseMcpResponse(body, null)),
+      "See the data: URL scheme and event: handlers for details",
+    );
   });
 
   it("returns {} for an empty body (202 notification)", () => {
@@ -31,7 +41,8 @@ describe("Exa behavior: MCP parsing and shaping", () => {
 
   it("parses structured results with the documented precedence", async () => {
     const raw = await readFixture("exa", "structured-results.json");
-    const results = impl.parseExaStructuredResults(raw) as any[];
+    const results = impl.parseExaStructuredResults(raw);
+    assert.ok(results);
     assert.equal(results.length, 4);
     assert.deepEqual(results[0], {
       title: "Alpha",
@@ -75,7 +86,8 @@ describe("Exa behavior: MCP parsing and shaping", () => {
     const raw = JSON.stringify({
       results: [{ title: "  Alpha\n  Beta  ", url: "https://example.com/x" }],
     });
-    const results = impl.parseExaStructuredResults(raw) as any[];
+    const results = impl.parseExaStructuredResults(raw);
+    assert.ok(results);
     assert.equal(results[0].title, "Alpha Beta");
   });
 
