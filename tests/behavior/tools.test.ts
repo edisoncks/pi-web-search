@@ -79,39 +79,37 @@ describe("web search tool definitions", () => {
     );
   });
 
-  it("pins the Exa tool metadata", () => {
+  // The exact tool prose is documented in docs/SPECIFICATION.md. These tests
+  // assert the policy those strings must encode — Exa primary, DuckDuckGo
+  // fallback — so the strings can be reworded without a change-detector test,
+  // but a silent inversion of the provider order fails.
+  it("describes Exa as the primary provider that falls back to DDG", () => {
     const exa = toolByName(setup().tools, "web_search_exa");
     assert.equal(exa.label, "Web Search (Exa)");
-    assert.equal(
-      exa.description,
-      "Primary web search provider. Use web_search_exa first for current information and relevant sources. If Exa reports a quota, rate-limit, or provider error, call web_search_ddg instead; do not retry Exa immediately.",
+    assert.match(exa.promptSnippet ?? "", /primary/i);
+    assert.match(exa.description, /primary/i);
+    assert.match(exa.description, /first/i);
+    assert.match(exa.description, /web_search_ddg/);
+    assert.ok(exa.promptGuidelines?.length);
+    assert.ok(
+      exa.promptGuidelines?.some((guideline) =>
+        /web_search_ddg/.test(guideline),
+      ),
     );
-    assert.equal(
-      exa.promptSnippet,
-      "Search the web with Exa as the primary provider",
-    );
-    assert.deepEqual(exa.promptGuidelines, [
-      "Use web_search_exa first when the user needs current information or web sources.",
-      "If web_search_exa reports an error, call web_search_ddg instead of retrying Exa immediately.",
-      "Do not call web_search_exa and web_search_ddg for the same query unless the user requests a comparison.",
-    ]);
   });
 
-  it("pins the DuckDuckGo tool metadata", () => {
+  it("describes DuckDuckGo as the fallback, never the first provider", () => {
     const ddg = toolByName(setup().tools, "web_search_ddg");
     assert.equal(ddg.label, "Web Search (DuckDuckGo)");
-    assert.equal(
-      ddg.description,
-      "Fallback web search provider using DuckDuckGo Lite through Obscura. Only use web_search_ddg when web_search_exa reports an error or when the user explicitly requests DuckDuckGo. Do not use it for routine searches while Exa is available.",
+    assert.match(ddg.promptSnippet ?? "", /Exa/i);
+    assert.match(ddg.description, /only use/i);
+    assert.match(ddg.description, /web_search_exa/);
+    assert.ok(ddg.promptGuidelines?.length);
+    assert.ok(
+      ddg.promptGuidelines?.some((guideline) =>
+        /web_search_exa/.test(guideline),
+      ),
     );
-    assert.equal(
-      ddg.promptSnippet,
-      "Search the web with DuckDuckGo only after Exa fails",
-    );
-    assert.deepEqual(ddg.promptGuidelines, [
-      "Use web_search_ddg only after web_search_exa reports an error or when the user explicitly requests DuckDuckGo.",
-      "Do not use web_search_ddg as the first provider for routine searches.",
-    ]);
   });
 });
 
