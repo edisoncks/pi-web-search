@@ -2,10 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   resolveDuckDuckGoResultUrl,
-  parseDuckDuckGoResults,
+  classifyDuckDuckGoResponse,
 } from "../lib/duckduckgo.js";
 
-describe("resolveDuckDuckGoResultUrl (P6: no DDG self-links)", () => {
+describe("resolveDuckDuckGoResultUrl drops DDG self-links", () => {
   it("drops internal links without a uddg target", () => {
     assert.equal(resolveDuckDuckGoResultUrl("/l/?kh=-1"), undefined);
     assert.equal(
@@ -68,7 +68,7 @@ describe("resolveDuckDuckGoResultUrl (P6: no DDG self-links)", () => {
   });
 });
 
-describe("parseDuckDuckGoResults (P6: no DDG URLs in output)", () => {
+describe("classification keeps DDG self-links out of results", () => {
   it("skips result-link anchors without uddg instead of surfacing DDG URLs", () => {
     const html = [
       '<a class="result-link" href="/l/?kh=-1">Nav junk</a>',
@@ -76,7 +76,10 @@ describe("parseDuckDuckGoResults (P6: no DDG URLs in output)", () => {
       '<a class="result-link" href="/l/?kh=-1&uddg=https%3A%2F%2Fexample.com%2Freal">Real</a>',
       '<td class="result-snippet">real snippet</td>',
     ].join("\n");
-    const results = parseDuckDuckGoResults(html);
+    const classification = classifyDuckDuckGoResponse(html);
+    assert.equal(classification.kind, "results");
+    if (classification.kind !== "results") throw new Error("expected results");
+    const results = classification.results;
     assert.equal(results.length, 1);
     assert.equal(results[0]?.url, "https://example.com/real");
     assert.ok(

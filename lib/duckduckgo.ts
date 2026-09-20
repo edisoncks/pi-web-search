@@ -160,20 +160,6 @@ function extractDuckDuckGoResults(html: string): WebSearchResult[] {
   return results;
 }
 
-export function parseDuckDuckGoResults(
-  html: string,
-  allowedDomains: string[] = [],
-  blockedDomains: string[] = [],
-): WebSearchResult[] {
-  const normalizedAllowedDomains = normalizeDomains(allowedDomains);
-  const normalizedBlockedDomains = normalizeDomains(blockedDomains);
-  return filterResultsByDomain(
-    extractDuckDuckGoResults(html),
-    normalizedAllowedDomains,
-    normalizedBlockedDomains,
-  );
-}
-
 export function classifyDuckDuckGoResponse(
   html: string,
   allowedDomains: string[] = [],
