@@ -78,4 +78,26 @@ describe("Exa behavior: MCP parsing and shaping", () => {
     const results = impl.parseExaStructuredResults(raw) as any[];
     assert.equal(results[0].title, "Alpha Beta");
   });
+
+  it("falls back to the URL for a whitespace-only title", () => {
+    const raw = JSON.stringify({
+      results: [
+        { title: "   ", url: "https://example.com/fallback", text: "s" },
+      ],
+    });
+    const results = impl.parseExaStructuredResults(raw);
+    assert.ok(results);
+    assert.equal(results[0].title, "https://example.com/fallback");
+  });
+
+  it("falls through whitespace-only highlights to the text snippet", () => {
+    const raw = JSON.stringify({
+      results: [
+        { url: "https://example.com/y", highlights: ["   "], text: "fallback" },
+      ],
+    });
+    const results = impl.parseExaStructuredResults(raw);
+    assert.ok(results);
+    assert.equal(results[0].snippet, "fallback");
+  });
 });
