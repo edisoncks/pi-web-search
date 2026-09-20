@@ -89,6 +89,7 @@ describe("web search tool definitions", () => {
     assert.match(exa.promptSnippet ?? "", /primary/i);
     assert.match(exa.description, /primary/i);
     assert.match(exa.description, /first/i);
+    assert.match(exa.description, /do not retry/i);
     assert.match(exa.description, /web_search_ddg/);
     assert.ok(exa.promptGuidelines?.length);
     assert.ok(
@@ -102,7 +103,9 @@ describe("web search tool definitions", () => {
     const ddg = toolByName(setup().tools, "web_search_ddg");
     assert.equal(ddg.label, "Web Search (DuckDuckGo)");
     assert.match(ddg.promptSnippet ?? "", /Exa/i);
+    assert.match(ddg.description, /fallback/i);
     assert.match(ddg.description, /only use/i);
+    assert.match(ddg.description, /routine/i);
     assert.match(ddg.description, /web_search_exa/);
     assert.ok(ddg.promptGuidelines?.length);
     assert.ok(
