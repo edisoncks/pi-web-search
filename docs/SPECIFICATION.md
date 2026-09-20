@@ -450,11 +450,15 @@ Signature: `parseDuckDuckGoResults(html, allowedDomains = [], blockedDomains = [
 ### 7.6 Classification (`classifyDuckDuckGoResponse`)
 
 Signature: `classifyDuckDuckGoResponse(html, allowedDomains = [], blockedDomains = [])`.
-It forwards both filters to `parseDuckDuckGoResults` (§7.3).
+Classification is decided by the **unfiltered** extraction (§7.3); the domain
+filters are applied only to the results that are emitted.
 
 Evaluated in this exact order:
 
-1. If parsing yields ≥ 1 result → `{ kind: "results", results }`.
+1. If unfiltered extraction yields ≥ 1 result → `{ kind: "results", results }`,
+   where `results` is that set with the domain filters applied (§7.3). Filtering
+   every result away is a successful empty result set; it MUST NOT be reported
+   as `drift`.
 2. Else if `detectDuckDuckGoChallenge(html)` matches →
    `{ kind: "challenge", reason }`.
 3. Else if the HTML contains `uddg=` → `{ kind: "drift" }`.

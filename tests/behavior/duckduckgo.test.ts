@@ -74,4 +74,28 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
     assert.equal(allowed.length, 1);
     assert.equal(allowed[0].url, "https://example.com/one");
   });
+
+  it("treats results removed by domain filters as empty, not drift", async () => {
+    const html = await readFixture("ddg", "lite-results.html");
+
+    // The page has two parseable results; the filters remove both. That is a
+    // successful empty result set, never a parser-drift failure.
+    const blocked = impl.classifyDuckDuckGoResponse(
+      html,
+      [],
+      ["example.com", "example.org"],
+    );
+    assert.equal(blocked.kind, "results");
+    if (blocked.kind !== "results") throw new Error("expected results");
+    assert.deepEqual(blocked.results, []);
+
+    const notAllowed = impl.classifyDuckDuckGoResponse(
+      html,
+      ["nomatch.test"],
+      [],
+    );
+    assert.equal(notAllowed.kind, "results");
+    if (notAllowed.kind !== "results") throw new Error("expected results");
+    assert.deepEqual(notAllowed.results, []);
+  });
 });

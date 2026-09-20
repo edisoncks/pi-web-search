@@ -121,10 +121,12 @@ know them before you touch the relevant code.
   No bare-suffix matching (`P5`).
 - **Never surface DuckDuckGo self-links.** Drop `duckduckgo.com` links and links
   without a usable `uddg` target (`P6`).
-- **Drift and challenge are different.** `uddg=` present with zero parsed
-  results is _drift_ (deterministic, no cooldown); challenge markers are
-  transient and trip the breaker. Only consult the challenge detector when zero
-  results parsed.
+- **Drift is decided before domain filtering, and filtering is not drift.**
+  `uddg=` present with zero **extracted** results is _drift_ (deterministic, no
+  cooldown); filtering every extracted result away with
+  `allowedDomains`/`blockedDomains` is an empty success, never drift. Challenge
+  markers are transient and trip the breaker. Only consult the challenge
+  detector when zero results were extracted.
 - **`resultCount` is honest.** Unstructured Exa text reports `0`, never a guess
   (`P7`).
 - **Provider casing differs by surface.** `details.provider` is lowercase
