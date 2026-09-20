@@ -82,7 +82,10 @@ export function buildExaSearchRequest(
 }
 
 export function isExaQuotaOrRateLimitError(error: unknown): boolean {
-  return /quota|rate.?limit|too many requests|http\s*429|usage limit|exceeded/iu.test(
+  // The bare word "exceeded" is deliberately not a trigger: an unrelated
+  // "response size exceeded" must not be reported to the model as a
+  // quota/rate-limit problem and steer it to the DuckDuckGo fallback.
+  return /quota|rate.?limit|too many requests|http\s*429|usage limit/iu.test(
     errorMessage(error),
   );
 }

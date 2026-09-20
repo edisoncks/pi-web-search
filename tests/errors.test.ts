@@ -26,6 +26,14 @@ describe("createExaSearchError (P7: actionable auth hint, warn-and-try)", () => 
       /unavailable/,
     );
   });
+
+  it("does not treat an unrelated 'exceeded' as a quota error", () => {
+    const err = createExaSearchError(
+      new Error("Exa MCP returned HTTP 500: response size exceeded"),
+    );
+    assert.doesNotMatch(err.message, /quota or rate limit/i);
+    assert.match(err.message, /unavailable/);
+  });
 });
 
 describe("createDuckDuckGoSearchError (P7: obscura PATH hint)", () => {
