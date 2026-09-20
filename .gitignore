@@ -1,3 +1,7 @@
 node_modules/
 *.tsbuildinfo
 .DS_Store
+
+# Local recreation dry-run scaffold (see docs/RECREATION.md). Not shipped: the
+# durable proof is tests/conformance/, not a second implementation.
+recreation/

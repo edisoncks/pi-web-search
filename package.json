@@ -19,6 +19,7 @@
   "files": [
     "index.ts",
     "lib",
+    "docs",
     "README.md",
     "LICENSE"
   ],
