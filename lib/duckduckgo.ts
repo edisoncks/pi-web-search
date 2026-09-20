@@ -29,6 +29,7 @@ import {
   DuckDuckGoUnavailableError,
   DuckDuckGoDriftError,
   UnsupportedRuntimeError,
+  type AbortSignalStatics,
 } from "./policy.js";
 import { formatNumberedResults } from "./format.js";
 
@@ -292,11 +293,12 @@ export async function fetchDuckDuckGoWithRetry(
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
   fetchAttempt: DuckDuckGoAttempt = fetchDuckDuckGoAttempt,
+  statics: AbortSignalStatics = AbortSignal,
 ): Promise<WebSearchResult[]> {
   // One deadline for the whole search, created here because this runs inside
   // the signal-less shared flight. Every retry attempt and the backoff between
   // them share it, so retries cannot extend the caller-visible bound.
-  const requestSignal = getSearchSignal(signal);
+  const requestSignal = getSearchSignal(signal, statics);
 
   for (let attempt = 0; attempt <= DDG_MAX_RETRIES; attempt += 1) {
     try {
@@ -333,14 +335,22 @@ export async function searchDuckDuckGo(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
-  fetchResults: DuckDuckGoFetch = fetchDuckDuckGoWithRetry,
+  fetchResults?: DuckDuckGoFetch,
+  statics: AbortSignalStatics = AbortSignal,
 ): Promise<ProviderSearchResult> {
-  const results = await getDuckDuckGoResults(
-    params,
-    state,
-    signal,
-    fetchResults,
-  );
+  // Bind the injected statics into the default fetch so a caller that swaps
+  // them (tests) reaches the same fetch path the default would take.
+  const fetchPage =
+    fetchResults ??
+    ((fetchParams, fetchState, fetchSignal) =>
+      fetchDuckDuckGoWithRetry(
+        fetchParams,
+        fetchState,
+        fetchSignal,
+        fetchDuckDuckGoAttempt,
+        statics,
+      ));
+  const results = await getDuckDuckGoResults(params, state, signal, fetchPage);
   const sliced = results.slice(0, params.numResults);
   return {
     text: formatNumberedResults("DuckDuckGo", sliced),
@@ -386,9 +396,10 @@ export async function searchDuckDuckGoForTool(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
+  statics: AbortSignalStatics = AbortSignal,
 ): Promise<ProviderSearchResult> {
   try {
-    return await searchDuckDuckGo(params, state, signal);
+    return await searchDuckDuckGo(params, state, signal, undefined, statics);
   } catch (error) {
     if (signal?.aborted || error instanceof UnsupportedRuntimeError)
       throw error;
