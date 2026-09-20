@@ -26,6 +26,14 @@ describe("isRetryableDuckDuckGoError (P4: typed retry)", () => {
     );
   });
 
+  it("treats a Node execFile AbortError as non-retryable", () => {
+    const nodeAbort = Object.assign(new Error("The operation was aborted"), {
+      name: "AbortError",
+      code: "ABORT_ERR",
+    });
+    assert.equal(isRetryableDuckDuckGoError(nodeAbort), false);
+  });
+
   it("retries transient I/O failures", () => {
     assert.equal(
       isRetryableDuckDuckGoError(new Error("spawn obscura ETIMEDOUT")),

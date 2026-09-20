@@ -491,8 +491,11 @@ when zero results parsed, so that snippet text (e.g. a search _about_ "HTTP
 
 - At most `DDG_MAX_RETRIES = 1` retry (2 attempts total).
 - `isRetryableDuckDuckGoError` returns `false` for
-  `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, and `AbortError`; it
-  returns `true` for all other errors (transient I/O).
+  `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, and any abort error —
+  including Node's `execFile` abort (`name === "AbortError"` or `code ===
+"ABORT_ERR"`), not only `DOMException`. It returns `true` for all other errors
+  (transient I/O). A DuckDuckGo request that hits the 15 s timeout therefore
+  fails fast instead of retrying.
 - The backoff before attempt `n` (0-indexed) is
   `DDG_RETRY_BASE_MS * 2 ** n + randomJitter(DDG_JITTER_MS)` =
   `1000 * 2**n + rand(0..1000)` ms.
