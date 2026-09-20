@@ -26,8 +26,12 @@ RFC 2119.
 
 - **Node `>=22.19.0`** (`engines.node`, required by the Pi host peer
   dependency). `getRequestSignal` additionally guards for
-  `AbortSignal.timeout`/`AbortSignal.any` and throws
+  `AbortSignal.timeout`/`AbortSignal.any` and throws `UnsupportedRuntimeError`
+  with the message
   `pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)`.
+  This is an environment fault, not a provider fault: both provider wrappers
+  rethrow it unchanged (§6.7, §7.11) rather than framing it as an Exa or
+  DuckDuckGo outage.
 - `EXA_API_KEY` is optional (§6.3).
 - `obscura` on `PATH` is required only for the DuckDuckGo provider (§7.1).
 
@@ -277,7 +281,8 @@ optional space), join with `\n`, trim, drop empties. `JSON.parse` candidates
 - JSON-RPC error: `Exa MCP error (<code>): <message>` (code omitted when
   absent; message defaults to `unknown error`).
 - Missing result: `Exa MCP returned no tool result`.
-- `searchExaForTool` rewrites failures unless the caller's signal aborted:
+- `searchExaForTool` rewrites failures unless the caller's signal aborted or
+  the failure is `UnsupportedRuntimeError` (§0):
   - HTTP 401/403 → `Exa web search is unavailable (<detail>). Set EXA_API_KEY to use Exa, or call web_search_ddg for this search instead; do not retry web_search_exa immediately.`
   - quota/rate-limit → `Exa quota or rate limit was reached (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`
   - otherwise → `Exa web search is unavailable (<detail>). …` (same tail).
@@ -367,11 +372,11 @@ so snippet text cannot trip the breaker.
 ### 7.8 Retry policy
 
 At most one retry (two attempts). `isRetryableDuckDuckGoError` returns `false`
-for `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, and any abort error —
-including Node's `name === "AbortError"` / `code === "ABORT_ERR"` — and `true`
-otherwise. Backoff before attempt `n` (0-indexed) is
-`1000 * 2 ** n + rand(0..1000)` ms. An aborted caller throws immediately;
-exhausting retries throws `DuckDuckGo request failed`.
+for `DuckDuckGoUnavailableError`, `DuckDuckGoDriftError`, `UnsupportedRuntimeError`
+(§0), and any abort error — including Node's `name === "AbortError"` /
+`code === "ABORT_ERR"` — and `true` otherwise. Backoff before attempt `n`
+(0-indexed) is `1000 * 2 ** n + rand(0..1000)` ms. An aborted caller throws
+immediately; exhausting retries throws `DuckDuckGo request failed`.
 
 ### 7.9 Request serialization
 
@@ -408,7 +413,8 @@ All DDG work is serialized through `state.requestQueue`:
 
 ### 7.11 Error mapping
 
-`searchDuckDuckGoForTool` rethrows aborts unchanged; otherwise:
+`searchDuckDuckGoForTool` rethrows aborts and `UnsupportedRuntimeError` (§0)
+unchanged; otherwise:
 
 - `spawn obscura ENOENT` / `ENOENT.*obscura` / `obscura.*not found` →
   `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (<detail>)`.

@@ -32,6 +32,18 @@ export class DuckDuckGoDriftError extends Error {
   }
 }
 
+/**
+ * The host is running a Node too old for `AbortSignal.timeout`/`any`. This is
+ * an environment fault, not a provider fault, so both `search*ForTool` wrappers
+ * rethrow it unchanged instead of rewriting it into a provider error.
+ */
+export class UnsupportedRuntimeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnsupportedRuntimeError";
+  }
+}
+
 export function createDuckDuckGoState(): DuckDuckGoState {
   return {
     requestQueue: Promise.resolve(),
@@ -47,7 +59,7 @@ export function getRequestSignal(signal: AbortSignal | undefined): AbortSignal {
     typeof AbortSignal.timeout !== "function" ||
     typeof (AbortSignal as unknown as { any?: unknown }).any !== "function"
   ) {
-    throw new Error(
+    throw new UnsupportedRuntimeError(
       "pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)",
     );
   }
@@ -217,6 +229,7 @@ function isAbortError(error: unknown): boolean {
 export function isRetryableDuckDuckGoError(error: unknown): boolean {
   if (error instanceof DuckDuckGoUnavailableError) return false;
   if (error instanceof DuckDuckGoDriftError) return false;
+  if (error instanceof UnsupportedRuntimeError) return false;
   if (isAbortError(error)) return false;
   return true;
 }
