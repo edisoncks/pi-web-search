@@ -1,6 +1,6 @@
 {
   "name": "pi-web-search",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Two web-search tools for Pi: web_search_exa (primary) and web_search_ddg (fallback via DuckDuckGo Lite through Obscura).",
   "type": "module",
   "license": "MIT",
