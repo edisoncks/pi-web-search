@@ -34,7 +34,7 @@ when it moves and `pi update --extensions` applies the update. To pin a specific
 release instead — which Pi's update check skips — append a tag:
 
 ```bash
-pi install git:github.com/edisoncks/pi-web-search@v1.0.1
+pi install git:github.com/edisoncks/pi-web-search@v2.0.0
 ```
 
 ## Documentation

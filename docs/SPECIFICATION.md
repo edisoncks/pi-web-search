@@ -440,7 +440,7 @@ Machine-checked by `tests/doc-parity.test.ts`:
 
 ```json spec-constants
 {
-  "PACKAGE_VERSION": "1.0.1",
+  "PACKAGE_VERSION": "2.0.0",
   "DEFAULT_NUM_RESULTS": 8,
   "MAX_NUM_RESULTS": 20,
   "MIN_QUERY_LENGTH": 2,
