@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { waitForPromiseWithSignal } from "../index.js";
+import { waitForPromiseWithSignal } from "../lib/policy.js";
 
 function deferred<T>() {
   let resolve!: (v: T) => void;

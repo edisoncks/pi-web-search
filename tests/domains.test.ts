@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeDomains, isDomainMatch, hostnameOf } from "../index.js";
+import { normalizeDomains, isDomainMatch, hostnameOf } from "../lib/filter.js";
 
 describe("normalizeDomains (P3: strict blank rejection)", () => {
   it("throws on whitespace-only entries (silent-unfiltered guard)", () => {

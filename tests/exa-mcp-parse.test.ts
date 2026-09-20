@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseMcpResponse } from "../index.js";
+import { parseMcpResponse } from "../lib/exa.js";
 
 describe("parseMcpResponse (P1: content-type-aware)", () => {
   it("parses plain JSON containing 'data:' as JSON, not SSE", () => {

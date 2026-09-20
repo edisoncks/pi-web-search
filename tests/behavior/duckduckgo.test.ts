@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import * as impl from "../../index.js";
+import * as impl from "../../lib/duckduckgo.js";
 import { readFixture } from "./helpers.js";
 
 describe("DuckDuckGo behavior: parsing and classification", () => {
