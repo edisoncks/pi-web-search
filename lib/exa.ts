@@ -11,12 +11,8 @@ import type {
 } from "./types.js";
 import { isDomainMatch } from "./filter.js";
 import { PACKAGE_VERSION } from "./version.js";
-import {
-  getRequestSignal,
-  errorMessage,
-  shortErrorMessage,
-  formatNumberedResults,
-} from "./policy.js";
+import { getRequestSignal, errorMessage, shortErrorMessage } from "./policy.js";
+import { formatNumberedResults } from "./format.js";
 
 export const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 

@@ -1,6 +1,7 @@
 import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createSearchParameters, normalizeSearchParams } from "./lib/params.js";
-import { createDuckDuckGoState, formatSearchToolResult } from "./lib/policy.js";
+import { createDuckDuckGoState } from "./lib/policy.js";
+import { formatSearchToolResult } from "./lib/format.js";
 import { searchExaForTool } from "./lib/exa.js";
 import { searchDuckDuckGoForTool } from "./lib/duckduckgo.js";
 

@@ -1,15 +1,10 @@
-// Rate limiting, caching, circuit breaking, request dedup, and shared
-// formatting helpers. Depends only on lib/types.js and the pi host package.
-import {
-  DEFAULT_MAX_BYTES,
-  DEFAULT_MAX_LINES,
-  truncateHead,
-} from "@earendil-works/pi-coding-agent";
+// Rate limiting, caching, circuit breaking, request dedup, and abort-aware
+// signal helpers. Depends only on lib/types.js. Output formatting lives in
+// lib/format.ts so this module stays about request policy.
 import { REQUEST_TIMEOUT_MS } from "./types.js";
 import type {
   DuckDuckGoState,
   NormalizedSearchParams,
-  ProviderSearchResult,
   WebSearchResult,
 } from "./types.js";
 
@@ -271,49 +266,4 @@ export function cacheDuckDuckGoResults(
     if (oldestKey === undefined) break;
     state.cache.delete(oldestKey);
   }
-}
-
-export function formatNumberedResults(
-  provider: string,
-  results: WebSearchResult[],
-): string {
-  if (results.length === 0)
-    return `No web search results found (provider: ${provider}).`;
-
-  const entries = results.map((result, index) => {
-    const lines = [`${index + 1}. ${result.title}`, `   URL: ${result.url}`];
-    if (result.snippet) lines.push(`   ${result.snippet}`);
-    return lines.join("\n");
-  });
-
-  return [`Web search results (provider: ${provider}):`, ...entries].join(
-    "\n\n",
-  );
-}
-
-export function truncateSearchOutput(text: string): string {
-  const truncation = truncateHead(text, {
-    maxBytes: DEFAULT_MAX_BYTES,
-    maxLines: DEFAULT_MAX_LINES,
-  });
-
-  if (!truncation.truncated) return truncation.content;
-
-  return `${truncation.content}\n\n[Search output truncated by pi; reduce numResults or narrow the domain filters.]`;
-}
-
-export function formatSearchToolResult(
-  provider: string,
-  result: ProviderSearchResult,
-): {
-  content: [{ type: "text"; text: string }];
-  details: { provider: string; resultCount: number };
-} {
-  return {
-    content: [{ type: "text", text: truncateSearchOutput(result.text) }],
-    details: {
-      provider,
-      resultCount: result.resultCount,
-    },
-  };
 }
