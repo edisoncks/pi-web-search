@@ -12,7 +12,7 @@ import type {
 import { isDomainMatch } from "./filter.js";
 import { PACKAGE_VERSION } from "./version.js";
 import {
-  getRequestSignal,
+  getSearchSignal,
   errorMessage,
   shortErrorMessage,
   UnsupportedRuntimeError,
@@ -219,7 +219,9 @@ export async function postMcpRequest(
     method: "POST",
     headers,
     body: JSON.stringify(payload),
-    signal: getRequestSignal(signal),
+    // The caller supplies the single per-search deadline; this transport does
+    // not start a fresh timeout for each round trip.
+    signal,
   });
   const body = await response.text();
 
@@ -470,16 +472,26 @@ export async function searchExa(
   signal: AbortSignal | undefined,
   sessions: ExaSessionStore = defaultExaSessions,
 ): Promise<ProviderSearchResult> {
+  // One deadline for the whole search: the handshake, the call, and any
+  // 404-driven re-handshake and retry all share it.
+  const requestSignal = getSearchSignal(signal);
   const toolName = resolveExaTool(params);
   const endpoint = buildExaEndpoint(toolName);
 
   const cachedSession = sessions.get(endpoint);
   const sessionId =
-    cachedSession ?? (await establishExaSession(endpoint, sessions, signal));
+    cachedSession ??
+    (await establishExaSession(endpoint, sessions, requestSignal));
 
   let result: McpToolResult;
   try {
-    result = await callExaTool(endpoint, toolName, params, sessionId, signal);
+    result = await callExaTool(
+      endpoint,
+      toolName,
+      params,
+      sessionId,
+      requestSignal,
+    );
   } catch (error) {
     // A cached session may have expired server-side: drop it, handshake once
     // more, and retry the call once. A freshly established session is never
@@ -497,14 +509,14 @@ export async function searchExa(
     const freshSessionId = await establishExaSession(
       endpoint,
       sessions,
-      signal,
+      requestSignal,
     );
     result = await callExaTool(
       endpoint,
       toolName,
       params,
       freshSessionId,
-      signal,
+      requestSignal,
     );
   }
 

@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   createDuckDuckGoState,
-  getRequestSignal,
+  getSearchSignal,
   UnsupportedRuntimeError,
 } from "../lib/policy.js";
 import { searchExaForTool } from "../lib/exa.js";
@@ -41,10 +41,10 @@ const params: NormalizedSearchParams = {
 };
 
 describe("unsupported runtime guard", () => {
-  it("getRequestSignal throws a typed UnsupportedRuntimeError", () => {
+  it("getSearchSignal throws a typed UnsupportedRuntimeError", () => {
     breakAbortStatics();
     assert.throws(
-      () => getRequestSignal(undefined),
+      () => getSearchSignal(undefined),
       (error: unknown) => error instanceof UnsupportedRuntimeError,
     );
   });
@@ -52,7 +52,7 @@ describe("unsupported runtime guard", () => {
   it("names the Node floor in the message", () => {
     breakAbortStatics();
     assert.throws(
-      () => getRequestSignal(undefined),
+      () => getSearchSignal(undefined),
       /requires Node >=22\.19\.0/,
     );
   });

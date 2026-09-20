@@ -54,7 +54,13 @@ export function createDuckDuckGoState(): DuckDuckGoState {
   };
 }
 
-export function getRequestSignal(signal: AbortSignal | undefined): AbortSignal {
+/**
+ * Combine the caller's signal with the one timeout shared by every network
+ * round trip of a single search. Call this once per search, not once per
+ * request, so the 15 s bound applies to the whole search instead of resetting
+ * on every handshake and retry round trip.
+ */
+export function getSearchSignal(signal: AbortSignal | undefined): AbortSignal {
   if (
     typeof AbortSignal.timeout !== "function" ||
     typeof (AbortSignal as unknown as { any?: unknown }).any !== "function"
