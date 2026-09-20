@@ -17,7 +17,7 @@ if the two conflict, the SPEC wins.
 
 ## Dependency graph
 
-```
+```text
 index ──▶ { exa, duckduckgo, policy, filter, types }
 exa ──▶ { filter, types, policy }
 duckduckgo ──▶ { filter, types, policy }
@@ -34,7 +34,7 @@ imports `index`.
 
 ### Exa (primary)
 
-```
+```text
 tool call
 ├─ normalizeSearchParams  (index.ts)
 │  └─ searchExaForTool  (exa.ts)
@@ -51,7 +51,7 @@ tool call
 
 ### DuckDuckGo (fallback)
 
-```
+```text
 tool call
 ├─ normalizeSearchParams  (index.ts)
 │  └─ searchDuckDuckGoForTool  (duckduckgo.ts)

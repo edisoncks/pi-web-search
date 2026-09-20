@@ -1,5 +1,7 @@
 node_modules
 package-lock.json
 
-# Test fixtures are inputs, not source: keep them byte-stable.
-tests/fixtures
+# Test fixtures are inputs, not source: keep them byte-stable. The README is
+# documentation, so Prettier formats it.
+tests/fixtures/**
+!tests/fixtures/README.md
