@@ -38,6 +38,24 @@ describe("policy conformance: formatting", () => {
       /\[Search output truncated by pi;/,
     );
   });
+
+  it("does not truncate exactly 2000 lines but does at 2001", () => {
+    const exact = Array.from({ length: 2000 }, (_, i) => `l${i}`).join("\n");
+    assert.equal(impl.truncateSearchOutput(exact), exact);
+
+    const over = Array.from({ length: 2001 }, (_, i) => `l${i}`).join("\n");
+    assert.match(
+      impl.truncateSearchOutput(over),
+      /\[Search output truncated by pi;/,
+    );
+  });
+
+  it("truncates when a single line exceeds the byte cap", () => {
+    assert.match(
+      impl.truncateSearchOutput("x".repeat(60000)),
+      /\[Search output truncated by pi;/,
+    );
+  });
 });
 
 describe("policy conformance: domains and errors", () => {
