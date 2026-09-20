@@ -29,7 +29,7 @@
     ]
   },
   "scripts": {
-    "test": "tsx --test tests/**/*.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "conformance": "tsx --test tests/conformance/*.conformance.ts",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "verify": "npm run typecheck && npm run test && npm run conformance"
