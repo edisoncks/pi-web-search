@@ -1,29 +1,16 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import * as entry from "../index.js";
 
-const indexPath = fileURLToPath(new URL("../index.ts", import.meta.url));
-
-/**
- * Top-level `export` statements in a module source. The package's only public
- * API is the default extension factory, so exactly one `export default
- * function` line is allowed; any named export or re-export would add another
- * and fail the assertion below.
- */
-function exportStatements(source: string): string[] {
-  return source.match(/^export\b.*$/gmu) ?? [];
-}
-
+// The package's only public API is the default export of index.ts, the
+// extension factory. Internals live in lib/ and are imported directly by tests;
+// adding a named export to index.ts widens the public API and must be a
+// deliberate decision, not an accident. Importing the module and inspecting its
+// namespace tests the actual export surface rather than the file's text, so a
+// legitimate refactor that keeps the default export keeps this test green.
 describe("entry-point API surface (guard against re-bloating)", () => {
   it("exports exactly the default extension factory and nothing else", () => {
-    const source = readFileSync(indexPath, "utf8");
-    const exports = exportStatements(source);
-    assert.equal(
-      exports.length,
-      1,
-      `index.ts must export only the default factory; found:\n${exports.join("\n")}`,
-    );
-    assert.match(exports[0], /^export default function\b/);
+    assert.deepEqual(Object.keys(entry), ["default"]);
+    assert.equal(typeof entry.default, "function");
   });
 });
