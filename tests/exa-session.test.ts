@@ -239,3 +239,27 @@ describe("Exa MCP session reuse", () => {
     assert.equal(toolCalls, 2);
   });
 });
+
+describe("Exa MCP request deadline", () => {
+  it("shares one signal across every round trip of a search", async () => {
+    const signals: Array<AbortSignal | null | undefined> = [];
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      signals.push(init?.signal);
+      const body = JSON.parse(String(init?.body ?? "{}")) as Body;
+      if (body.method === "initialize") return initializeResponse("sess-1");
+      if (body.method === "notifications/initialized") {
+        return new Response(null, { status: 202 });
+      }
+      return searchResponse();
+    }) as typeof fetch;
+
+    await searchExa(base, undefined, createExaSessionStore());
+
+    // initialize + notifications/initialized + tools/call must all be bounded
+    // by the same deadline signal, not one fresh timeout per round trip.
+    assert.equal(signals.length, 3);
+    assert.ok(signals[0] instanceof AbortSignal);
+    assert.equal(signals[0], signals[1]);
+    assert.equal(signals[1], signals[2]);
+  });
+});

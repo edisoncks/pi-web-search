@@ -13,7 +13,7 @@ import type {
 } from "./types.js";
 import { isDomainMatch } from "./filter.js";
 import {
-  getRequestSignal,
+  getSearchSignal,
   errorMessage,
   shortErrorMessage,
   waitWithSignal,
@@ -243,10 +243,10 @@ export async function fetchDuckDuckGoAttempt(
     {
       encoding: "utf8",
       maxBuffer: DDG_MAX_OUTPUT_BYTES,
-      // getRequestSignal already bounds this call with the caller's signal plus
-      // AbortSignal.timeout(REQUEST_TIMEOUT_MS); a separate execFile `timeout`
-      // would be a second mechanism racing the same child process.
-      signal: getRequestSignal(signal),
+      // fetchDuckDuckGoWithRetry owns the single per-search deadline and passes
+      // it down; execFile gets that one signal and no separate `timeout` option
+      // racing the same child process.
+      signal,
     },
   );
   const html = stdout;
@@ -275,28 +275,45 @@ export async function fetchDuckDuckGoAttempt(
   return classification.kind === "results" ? classification.results : [];
 }
 
+/** Injectable for tests: perform one DuckDuckGo fetch attempt. */
+export type DuckDuckGoAttempt = (
+  params: NormalizedSearchParams,
+  state: DuckDuckGoState,
+  signal: AbortSignal | undefined,
+) => Promise<WebSearchResult[]>;
+
 export async function fetchDuckDuckGoWithRetry(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
   signal: AbortSignal | undefined,
+  attempt: DuckDuckGoAttempt = fetchDuckDuckGoAttempt,
 ): Promise<WebSearchResult[]> {
-  for (let attempt = 0; attempt <= DDG_MAX_RETRIES; attempt += 1) {
+  // One deadline for the whole search, created here because this runs inside
+  // the signal-less shared flight. Every retry attempt and the backoff between
+  // them share it, so retries cannot extend the caller-visible bound.
+  const requestSignal = getSearchSignal(signal);
+
+  for (
+    let attemptIndex = 0;
+    attemptIndex <= DDG_MAX_RETRIES;
+    attemptIndex += 1
+  ) {
     try {
-      return await withDuckDuckGoRequestSlot(state, signal, () =>
-        fetchDuckDuckGoAttempt(params, state, signal),
+      return await withDuckDuckGoRequestSlot(state, requestSignal, () =>
+        attempt(params, state, requestSignal),
       );
     } catch (error) {
       if (
         signal?.aborted ||
-        attempt >= DDG_MAX_RETRIES ||
+        attemptIndex >= DDG_MAX_RETRIES ||
         !isRetryableDuckDuckGoError(error)
       ) {
         throw error;
       }
 
       await waitWithSignal(
-        DDG_RETRY_BASE_MS * 2 ** attempt + randomJitter(DDG_JITTER_MS),
-        signal,
+        DDG_RETRY_BASE_MS * 2 ** attemptIndex + randomJitter(DDG_JITTER_MS),
+        requestSignal,
       );
     }
   }
