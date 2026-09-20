@@ -26,7 +26,7 @@ follows it automatically.
 ## Install
 
 ```bash
-pi install git:github.com/edisoncks/pi-web-search@v1.0.0
+pi install git:github.com/edisoncks/pi-web-search@v1.0.1
 ```
 
 ## Documentation

@@ -27,7 +27,7 @@ const EXA_INITIALIZE_ID = 1;
 const EXA_TOOLS_CALL_ID = 2;
 const EXA_PROTOCOL_VERSION = "2025-03-26";
 const EXA_CLIENT_NAME = "pi-web-search";
-const EXA_CLIENT_VERSION = "1.0.0";
+const EXA_CLIENT_VERSION = "1.0.1";
 const EXA_TEXT_MAX_CHARACTERS = 1_000;
 
 /** Build the JSON-RPC `initialize` request body (id 1). Pure. */
