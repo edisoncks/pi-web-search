@@ -14,9 +14,7 @@ follows it automatically.
 ## Requirements
 
 - **Node `>=22.19.0`** — required by the Pi host peer dependency
-  `@earendil-works/pi-coding-agent` (it uses `fs.globSync`). The extension's own
-  `AbortSignal.timeout`/`any` guard is a lower bound at 20.3, but the host
-  governs the effective floor.
+  `@earendil-works/pi-coding-agent` (it uses `fs.globSync`).
 - `EXA_API_KEY` — optional. Exa is tried anonymously; a key is only needed when
   the server rejects the request.
 - `obscura` on `PATH` — required **only** for `web_search_ddg`. Obscura is a
