@@ -168,8 +168,8 @@ The result is a `NormalizedSearchParams` with all four fields populated.
 5. If the resulting hostname is empty, throw `Invalid domain: <domain>`.
 6. On any parse failure, throw `Invalid domain: <domain>`.
 
-Examples: `Example.COM ` → `example.com`; `example.com/foo` → `example.com`;
-`https://example.com./` → `example.com`.
+Examples: `Example.COM` (with surrounding whitespace) → `example.com`;
+`example.com/foo` → `example.com`; `https://example.com./` → `example.com`.
 
 ### 5.2 `normalizeDomains(domains)`
 
@@ -379,7 +379,7 @@ Given the `McpToolResult` and normalized params:
 - Fetched by spawning the `obscura` binary with the argv produced by
   `buildObscuraArgs(params)`:
 
-  ```
+  ```sh
   obscura --stealth fetch <lite-url-with-q> --dump html --quiet --wait 0 --timeout <seconds>
   ```
 
@@ -546,7 +546,7 @@ All DDG work is serialized through a promise queue (`state.requestQueue`):
 - Otherwise, a header `Web search results (provider: <provider>):` followed by
   one block per result, blocks joined by `\n\n`:
 
-  ```
+  ```text
   1. <title>
      URL: <url>
      <snippet>
