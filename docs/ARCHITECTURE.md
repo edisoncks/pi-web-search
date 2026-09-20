@@ -115,6 +115,9 @@ know them before you touch the relevant code.
   signal only while it awaits the shared promise (`P2`).
 - **Spacing advances only on success.** `nextRequestAt` is updated after a
   completed attempt, never on a deterministic failure (`P4`).
+- **The request slot is a real mutex.** The queue tail chains through the
+  predecessor's gate, so a waiter that aborts while queued cannot free the slot
+  and let the next request overlap the in-flight one (`P4`).
 - **Blank domain entries throw.** A whitespace-only entry must not silently
   disable filtering (`P3`).
 - **Domain matching is strict:** `hostname === domain || hostname.endsWith("." + domain)`.

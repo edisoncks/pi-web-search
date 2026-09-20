@@ -174,9 +174,13 @@ export async function withDuckDuckGoRequestSlot<T>(
 ): Promise<T> {
   const previous = state.requestQueue;
   let release!: () => void;
-  state.requestQueue = new Promise<void>((resolve) => {
+  const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
+  // The next waiter must wait for both this attempt's gate and its predecessor,
+  // so a waiter that aborts while queued cannot free the slot while the current
+  // holder is still in flight.
+  state.requestQueue = previous.then(() => gate);
 
   try {
     await waitForPromiseWithSignal(previous, signal);
