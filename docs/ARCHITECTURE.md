@@ -197,6 +197,9 @@ Documentation and tests are part of the code, and CI enforces it:
 - `tests/doc-links.test.ts` fails on a broken relative link between docs.
 - `tests/behavior/*.test.ts` pins the wire/parse/format behavior against the
   committed fixtures.
+- `tests/integration/*.test.ts` drives the Exa MCP transport over a real socket
+  (including the cached-session 404 re-handshake) and the DuckDuckGo subprocess
+  path through a stub `obscura` on `PATH`.
 
 **When you change observable behavior, update the SPEC, the fixtures, and the
 behavior tests in the same change.** If you don't, `npm run verify` will tell

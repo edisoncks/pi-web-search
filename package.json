@@ -30,6 +30,7 @@
   },
   "scripts": {
     "test": "tsx --test 'tests/**/*.test.ts'",
+    "test:integration": "tsx --test 'tests/integration/*.test.ts'",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "eslint .",
     "format": "prettier --write .",
