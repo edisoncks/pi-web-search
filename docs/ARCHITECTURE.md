@@ -184,6 +184,16 @@ know them before you touch the relevant code.
 - The `files` allowlist ships `index.ts`, `lib`, `docs`, `README.md`, and
   `LICENSE`.
 
+## Forward compatibility
+
+`lib/exa.ts` pins MCP protocol version `2025-03-26`. The `2026-07-28` revision
+removes the `initialize`/`notifications/initialized` handshake and the
+`Mcp-Session-Id` header (SEP-2567/2575), which is the model this provider is
+built on. When the Exa MCP endpoint moves, the session store, the
+cached-session 404 re-handshake, and two of the three round trips have to be
+redesigned. This is a watch item, not a defect: the endpoint is an external
+contract that can drift.
+
 ## Documentation contract
 
 Documentation and tests are part of the code, and CI enforces it:
