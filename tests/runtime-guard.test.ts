@@ -11,9 +11,9 @@ import { searchExaForTool } from "../lib/exa.js";
 import { searchDuckDuckGoForTool } from "../lib/duckduckgo.js";
 import type { NormalizedSearchParams } from "../lib/types.js";
 
-// A Node too old for `AbortSignal.timeout`/`AbortSignal.any` is simulated by
-// injecting broken statics rather than deleting the globals, so the tests never
-// mutate shared process state.
+// The pure guard takes its statics as an argument, so a Node too old for
+// `AbortSignal.timeout`/`AbortSignal.any` is simulated by injecting broken
+// statics instead of mutating shared process state.
 const brokenStatics = {} as AbortSignalStatics;
 
 const params: NormalizedSearchParams = {
@@ -45,18 +45,29 @@ describe("unsupported runtime guard", () => {
     );
   });
 
-  it("searchExaForTool surfaces the runtime error unchanged", async () => {
-    await assert.rejects(
-      searchExaForTool(params, undefined, brokenStatics),
-      (error: unknown) => error instanceof UnsupportedRuntimeError,
-    );
-  });
-
-  it("searchDuckDuckGoForTool surfaces the runtime error unchanged", async () => {
+  // The provider wrappers read the real `AbortSignal` global, so there is no
+  // seam to inject. Break the global for the duration of this one test and
+  // restore it unconditionally: nothing between the break and the restore can
+  // throw uncaught, and preconditions are created before the break.
+  it("both provider wrappers surface the runtime error unchanged", async () => {
+    const timeout = AbortSignal.timeout;
+    const any = AbortSignal.any;
     const state = createDuckDuckGoState();
-    await assert.rejects(
-      searchDuckDuckGoForTool(params, state, undefined, brokenStatics),
-      (error: unknown) => error instanceof UnsupportedRuntimeError,
-    );
+    try {
+      AbortSignal.timeout = undefined as unknown as typeof AbortSignal.timeout;
+      AbortSignal.any = undefined as unknown as typeof AbortSignal.any;
+
+      await assert.rejects(
+        searchExaForTool(params, undefined),
+        (error: unknown) => error instanceof UnsupportedRuntimeError,
+      );
+      await assert.rejects(
+        searchDuckDuckGoForTool(params, state, undefined),
+        (error: unknown) => error instanceof UnsupportedRuntimeError,
+      );
+    } finally {
+      AbortSignal.timeout = timeout;
+      AbortSignal.any = any;
+    }
   });
 });
