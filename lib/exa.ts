@@ -21,6 +21,58 @@ import { formatNumberedResults } from "./format.js";
 
 export const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 
+/** Environment variable that overrides the Exa MCP endpoint. */
+export const EXA_MCP_URL_ENV = "PI_WEB_SEARCH_EXA_MCP_URL";
+
+/**
+ * A malformed `PI_WEB_SEARCH_EXA_MCP_URL` value. This is a configuration fault,
+ * not a provider outage, so the tool wrapper rethrows it unchanged instead of
+ * framing it as an unavailable provider.
+ */
+export class InvalidExaEndpointError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidExaEndpointError";
+  }
+}
+
+/**
+ * Strip any `user:password@` from a URL string so a rejected override never
+ * echoes credentials into an error message that may be logged or shown.
+ */
+function redactUserInfo(value: string): string {
+  return value.replace(/\/\/[^/@]*@/u, "//***@");
+}
+
+/**
+ * Resolve the MCP endpoint: the override when set, else the default. The
+ * override must be an `http(s)` URL without embedded credentials; anything else
+ * fails loudly rather than silently sending the API key to the default host.
+ */
+export function resolveExaMcpUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const override = env[EXA_MCP_URL_ENV]?.trim();
+  if (!override) return EXA_MCP_URL;
+
+  let url: URL;
+  try {
+    url = new URL(override);
+  } catch {
+    throw new InvalidExaEndpointError(
+      `${EXA_MCP_URL_ENV} must be an http(s) URL without credentials: ${redactUserInfo(override)}`,
+    );
+  }
+  if (
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    url.username ||
+    url.password
+  ) {
+    throw new InvalidExaEndpointError(
+      `${EXA_MCP_URL_ENV} must be an http(s) URL without credentials: ${redactUserInfo(override)}`,
+    );
+  }
+  return url.toString();
+}
+
 // Exa MCP wire constants. Kept as local (non-exported) values so the module
 // surface stays the pure builders below; the SPEC pins the literals.
 export type ExaToolName = "web_search_exa" | "web_search_advanced_exa";
@@ -402,7 +454,7 @@ function resolveExaTool(params: NormalizedSearchParams): ExaToolName {
 }
 
 function buildExaEndpoint(toolName: ExaToolName): string {
-  const endpoint = new URL(EXA_MCP_URL);
+  const endpoint = new URL(resolveExaMcpUrl());
   endpoint.searchParams.set("tools", toolName);
   return endpoint.toString();
 }
@@ -534,8 +586,13 @@ export async function searchExaForTool(
   try {
     return await searchExa(params, signal);
   } catch (error) {
-    if (signal?.aborted || error instanceof UnsupportedRuntimeError)
+    if (
+      signal?.aborted ||
+      error instanceof UnsupportedRuntimeError ||
+      error instanceof InvalidExaEndpointError
+    ) {
       throw error;
+    }
     throw createExaSearchError(error);
   }
 }
