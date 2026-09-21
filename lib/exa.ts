@@ -16,7 +16,6 @@ import {
   errorMessage,
   shortErrorMessage,
   UnsupportedRuntimeError,
-  type AbortSignalStatics,
 } from "./policy.js";
 import { formatNumberedResults } from "./format.js";
 
@@ -476,11 +475,10 @@ export async function searchExa(
   params: NormalizedSearchParams,
   signal: AbortSignal | undefined,
   sessions: ExaSessionStore = defaultExaSessions,
-  statics: AbortSignalStatics = AbortSignal,
 ): Promise<ProviderSearchResult> {
   // One deadline for the whole search: the handshake, the call, and any
   // 404-driven re-handshake and retry all share it.
-  const requestSignal = getSearchSignal(signal, statics);
+  const requestSignal = getSearchSignal(signal);
   const toolName = resolveExaTool(params);
   const endpoint = buildExaEndpoint(toolName);
 
@@ -532,10 +530,9 @@ export async function searchExa(
 export async function searchExaForTool(
   params: NormalizedSearchParams,
   signal: AbortSignal | undefined,
-  statics: AbortSignalStatics = AbortSignal,
 ): Promise<ProviderSearchResult> {
   try {
-    return await searchExa(params, signal, defaultExaSessions, statics);
+    return await searchExa(params, signal);
   } catch (error) {
     if (signal?.aborted || error instanceof UnsupportedRuntimeError)
       throw error;
