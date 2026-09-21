@@ -17,6 +17,9 @@ follows it automatically.
   `@earendil-works/pi-coding-agent` (it uses `fs.globSync`).
 - `EXA_API_KEY` — optional. Exa is tried anonymously; a key is only needed when
   the server rejects the request.
+- `PI_WEB_SEARCH_EXA_MCP_URL` — optional. Overrides the Exa MCP endpoint
+  (default `https://mcp.exa.ai/mcp`) for a proxy or self-hosted endpoint. Only
+  point it at a trusted host: `EXA_API_KEY` is sent there when set.
 - `obscura` on `PATH` — required **only** for `web_search_ddg`. Obscura is a
   separate dependency and is not installed by this package; install it from its
   official instructions.

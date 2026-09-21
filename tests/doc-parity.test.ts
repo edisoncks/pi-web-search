@@ -15,7 +15,7 @@ import {
   DDG_MAX_COOLDOWN_MS,
   DDG_MIN_PAUSE_MS,
 } from "../lib/policy.js";
-import { EXA_MCP_URL } from "../lib/exa.js";
+import { EXA_MCP_URL, EXA_MCP_URL_ENV } from "../lib/exa.js";
 import { PACKAGE_VERSION } from "../lib/version.js";
 import {
   DEFAULT_MAX_BYTES,
@@ -48,6 +48,7 @@ const actual: Record<string, unknown> = {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
   EXA_MCP_URL,
+  EXA_MCP_URL_ENV,
 };
 
 describe("SPEC constant parity (non-rot guard)", () => {

@@ -133,7 +133,11 @@ Exa text reports `resultCount: 0` rather than guessing (§5.5).
 
 ### 5.1 Endpoint and tool selection
 
-- Base URL `https://mcp.exa.ai/mcp`.
+- Base URL `https://mcp.exa.ai/mcp`, overridable with the
+  `PI_WEB_SEARCH_EXA_MCP_URL` environment variable (an `http(s)` URL without
+  embedded credentials; an invalid value fails loudly rather than falling back).
+  Only point the override at a trusted host: `EXA_API_KEY`, when set, is sent
+  there.
 - The request URL carries `?tools=`: `web_search_advanced_exa` when
   `allowedDomains` or `blockedDomains` is non-empty, else `web_search_exa`.
 
@@ -426,7 +430,8 @@ Machine-checked by `tests/doc-parity.test.ts`:
   "DDG_MAX_COOLDOWN_MS": 900000,
   "DEFAULT_MAX_BYTES": 51200,
   "DEFAULT_MAX_LINES": 2000,
-  "EXA_MCP_URL": "https://mcp.exa.ai/mcp"
+  "EXA_MCP_URL": "https://mcp.exa.ai/mcp",
+  "EXA_MCP_URL_ENV": "PI_WEB_SEARCH_EXA_MCP_URL"
 }
 ```
 
@@ -461,6 +466,7 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`.
 | Exa 401/403            | `Exa web search is unavailable (<detail>). Set EXA_API_KEY to use Exa, or call web_search_ddg for this search instead; do not retry web_search_exa immediately.` |
 | Exa quota/rate limit   | `Exa quota or rate limit was reached (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`                          |
 | Exa other              | `Exa web search is unavailable (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`                                |
+| Invalid Exa endpoint   | `PI_WEB_SEARCH_EXA_MCP_URL must be an http(s) URL without credentials: <value>`                                                                                  |
 | Obscura missing        | `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (<detail>)`                                             |
 | DDG generic            | `DuckDuckGo web search is unavailable (<detail>). Use web_search_exa if it has not already failed; do not retry DuckDuckGo immediately.`                         |
 | DDG challenge          | `DuckDuckGoUnavailableError`: `DuckDuckGo returned an anti-bot challenge page; use web_search_exa for this search.`                                              |
@@ -470,6 +476,7 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`.
 | Node too old           | `pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)`                                                                                 |
 
 All `<detail>` values are whitespace-collapsed and truncated to 300 characters.
+A rejected endpoint override redacts any embedded credentials in its `<value>`.
 
 ---
 
