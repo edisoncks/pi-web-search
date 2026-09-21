@@ -190,13 +190,11 @@ export function classifyDuckDuckGoResponse(
 }
 
 export function detectDuckDuckGoChallenge(html: string): string | undefined {
-  // Structural markers only. Callers gate this on zero parsed results so that
-  // snippet text (e.g. a search about "HTTP 429") can never trip the breaker.
-  if (
-    /challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/iu.test(
-      html,
-    )
-  ) {
+  // Structural markers only: the challenge form, or the page's distinctive
+  // sentence. Bare words such as `captcha` or `anomaly` are not markers, since
+  // an ordinary empty-result page echoes the query and would trip the breaker.
+  // Callers gate this on zero parsed results so snippet text cannot trip it.
+  if (/challenge-form|Unfortunately, bots use DuckDuckGo/iu.test(html)) {
     return "DuckDuckGo returned an anti-bot challenge page";
   }
   return undefined;
