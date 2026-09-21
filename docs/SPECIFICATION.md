@@ -312,8 +312,9 @@ longer is.
 
 ### 6.6 Failure and retry semantics
 
-- **Challenge** → `markDuckDuckGoUnavailable` (10–15 min, clamped) and throw
-  `DuckDuckGoUnavailableError(reason, retryAt)`.
+- **Challenge** → `markDuckDuckGoUnavailable` (10–15 min, clamped) and throw a
+  `DuckDuckGoUnavailableError(reason, retryAt)` whose message is
+  `<reason>; use web_search_exa for this search.`.
 - **Drift** → throw `DuckDuckGoDriftError` with
   `DuckDuckGo returned results but none could be parsed; its markup likely changed. Use web_search_exa for this search.`
   Retrying would only reproduce it: no retry, no cooldown, no spacing penalty.
@@ -354,9 +355,10 @@ per shared fetch and shared by every retry attempt and the backoff between them.
 
 ### 6.9 Error mapping
 
-`searchDuckDuckGoForTool` rethrows aborts and `UnsupportedRuntimeError` (§0)
-unchanged. The messages are listed in §9; `spawn obscura ENOENT`,
-`ENOENT.*obscura`, or `obscura.*not found` selects the PATH hint.
+`searchDuckDuckGoForTool` rethrows aborts, `UnsupportedRuntimeError` (§0), and
+the typed `DuckDuckGoDriftError`/`DuckDuckGoUnavailableError` unchanged; only
+unknown failures are mapped. The messages are listed in §9; `spawn obscura
+ENOENT`, `ENOENT.*obscura`, or `obscura.*not found` selects the PATH hint.
 
 ---
 
@@ -458,7 +460,7 @@ Cooldown is clamped to `[DDG_COOLDOWN_MS, DDG_MAX_COOLDOWN_MS]`.
 | Exa other              | `Exa web search is unavailable (<detail>). Call web_search_ddg for this search instead; do not retry web_search_exa immediately.`                                |
 | Obscura missing        | `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (<detail>)`                                             |
 | DDG generic            | `DuckDuckGo web search is unavailable (<detail>). Use web_search_exa if it has not already failed; do not retry DuckDuckGo immediately.`                         |
-| DDG challenge          | `DuckDuckGoUnavailableError(reason, retryAt)`                                                                                                                    |
+| DDG challenge          | `DuckDuckGoUnavailableError`: `DuckDuckGo returned an anti-bot challenge page; use web_search_exa for this search.`                                              |
 | DDG drift              | `DuckDuckGoDriftError`: `DuckDuckGo returned results but none could be parsed; its markup likely changed. Use web_search_exa for this search.`                   |
 | Circuit open           | `DuckDuckGoUnavailableError`: `DuckDuckGo is temporarily unavailable; retry in about <n>s`                                                                       |
 | Obscura empty output   | `Obscura returned empty DuckDuckGo HTML` (retryable)                                                                                                             |

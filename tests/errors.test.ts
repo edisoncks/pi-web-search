@@ -1,7 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createExaSearchError, formatExaSearchResult } from "../lib/exa.js";
-import { createDuckDuckGoSearchError } from "../lib/duckduckgo.js";
+import {
+  createDuckDuckGoSearchError,
+  searchDuckDuckGoForTool,
+} from "../lib/duckduckgo.js";
+import {
+  createDuckDuckGoState,
+  DuckDuckGoUnavailableError,
+} from "../lib/policy.js";
 
 describe("createExaSearchError gives an actionable auth hint", () => {
   it("names EXA_API_KEY on 401/403", () => {
@@ -46,6 +53,31 @@ describe("createDuckDuckGoSearchError names obscura on PATH", () => {
   it("keeps generic message for other failures", () => {
     const err = createDuckDuckGoSearchError(new Error("fetch failed"));
     assert.match(err.message, /DuckDuckGo web search is unavailable/);
+  });
+});
+
+describe("searchDuckDuckGoForTool keeps typed provider errors", () => {
+  const params = {
+    query: "q",
+    allowedDomains: [],
+    blockedDomains: [],
+    numResults: 8,
+  };
+
+  it("surfaces an open circuit as DuckDuckGoUnavailableError with retryAt", async () => {
+    const state = createDuckDuckGoState();
+    const retryAt = Date.now() + 60_000;
+    state.unavailableUntil = retryAt;
+
+    await assert.rejects(
+      searchDuckDuckGoForTool(params, state, undefined),
+      (error: unknown) => {
+        assert.ok(error instanceof DuckDuckGoUnavailableError);
+        assert.equal(error.retryAt, retryAt);
+        assert.match(error.message, /temporarily unavailable/);
+        return true;
+      },
+    );
   });
 });
 

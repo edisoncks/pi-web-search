@@ -163,6 +163,11 @@ know them before you touch the relevant code.
 - **Provider casing differs by surface.** `details.provider` is lowercase
   (`exa` / `duckduckgo`); `formatNumberedResults` uses display casing (`Exa` /
   `DuckDuckGo`).
+- **Typed provider failures survive the tool boundary.**
+  `DuckDuckGoDriftError` and `DuckDuckGoUnavailableError` (with `retryAt`) are
+  rethrown unchanged by `searchDuckDuckGoForTool`, each carrying its own
+  actionable message; only unknown failures are remapped to the generic tool
+  error.
 - **The prompt strings are behavior.** The Exa-first/fallback policy lives in
   the tool `description`/`promptSnippet`/`promptGuidelines` (SPEC §3); changing
   them changes what the model does.
