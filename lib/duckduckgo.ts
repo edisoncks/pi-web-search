@@ -268,7 +268,10 @@ export async function fetchDuckDuckGoAttempt(
 
   if (classification.kind === "challenge") {
     const retryAt = markDuckDuckGoUnavailable(state);
-    throw new DuckDuckGoUnavailableError(classification.reason, retryAt);
+    throw new DuckDuckGoUnavailableError(
+      `${classification.reason}; use web_search_exa for this search.`,
+      retryAt,
+    );
   }
   if (classification.kind === "drift") {
     // Deterministic: same markup will fail identically on retry. Fail fast
@@ -389,6 +392,18 @@ async function getDuckDuckGoResults(
   return waitForPromiseWithSignal(tracked, signal);
 }
 
+/**
+ * Provider failures that carry their own type and actionable message. They are
+ * surfaced unchanged so a caller can still distinguish them; only unknown
+ * failures are mapped to the generic tool error.
+ */
+function isPassthroughDuckDuckGoError(error: unknown): boolean {
+  return (
+    error instanceof DuckDuckGoDriftError ||
+    error instanceof DuckDuckGoUnavailableError
+  );
+}
+
 export async function searchDuckDuckGoForTool(
   params: NormalizedSearchParams,
   state: DuckDuckGoState,
@@ -397,8 +412,13 @@ export async function searchDuckDuckGoForTool(
   try {
     return await searchDuckDuckGo(params, state, signal);
   } catch (error) {
-    if (signal?.aborted || error instanceof UnsupportedRuntimeError)
+    if (
+      signal?.aborted ||
+      error instanceof UnsupportedRuntimeError ||
+      isPassthroughDuckDuckGoError(error)
+    ) {
       throw error;
+    }
     throw createDuckDuckGoSearchError(error);
   }
 }
