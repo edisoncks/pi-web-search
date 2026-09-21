@@ -483,7 +483,10 @@ A rejected endpoint override redacts any embedded credentials in its `<value>`.
 ## 10. Fixtures and tests
 
 `tests/behavior/*.test.ts` runs the committed fixtures against the
-implementation; `npm test` runs everything.
+implementation; `npm test` runs everything. `tests/integration/*.test.ts` drives
+the Exa MCP transport over a real socket (including the cached-session 404
+re-handshake) and the DuckDuckGo subprocess path through a stub `obscura` on
+`PATH`; the DuckDuckGo case is skipped on Windows.
 
 | Path                                           | Pins                                            |
 | ---------------------------------------------- | ----------------------------------------------- |

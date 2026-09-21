@@ -9,13 +9,14 @@ SPEC, the fixtures, and the behavior tests in the same change.** If you forget,
 
 The gates:
 
-| Check                       | Enforces                                                               |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `tests/doc-parity.test.ts`  | The SPEC constants block matches the code.                             |
-| `tests/arch-graph.test.ts`  | The ARCHITECTURE graph and module-roles table match the imports.       |
-| `tests/api-surface.test.ts` | `index.ts` exports only the default extension factory.                 |
-| `tests/doc-links.test.ts`   | Every relative link between docs resolves.                             |
-| `tests/behavior/*.test.ts`  | The documented wire/parse/format behavior, against committed fixtures. |
+| Check                         | Enforces                                                               |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `tests/doc-parity.test.ts`    | The SPEC constants block matches the code.                             |
+| `tests/arch-graph.test.ts`    | The ARCHITECTURE graph and module-roles table match the imports.       |
+| `tests/api-surface.test.ts`   | `index.ts` exports only the default extension factory.                 |
+| `tests/doc-links.test.ts`     | Every relative link between docs resolves.                             |
+| `tests/behavior/*.test.ts`    | The documented wire/parse/format behavior, against committed fixtures. |
+| `tests/integration/*.test.ts` | The Exa socket and DuckDuckGo subprocess paths, end to end.            |
 
 ## Running
 
@@ -31,6 +32,7 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm test            # units, behavior tests, and documentation gates
+npm run test:integration  # just the real-socket and subprocess tests
 ```
 
 ## Where things live
