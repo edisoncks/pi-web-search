@@ -78,6 +78,11 @@ describe("DuckDuckGo behavior: parsing and classification", () => {
     assert.equal(impl.classifyDuckDuckGoResponse(html).kind, "empty");
   });
 
+  it("treats echoed challenge words in an empty result as empty", async () => {
+    const html = await readFixture("ddg", "empty-query-echo.html");
+    assert.equal(impl.classifyDuckDuckGoResponse(html).kind, "empty");
+  });
+
   it("filters client-side by allowed and blocked domains", async () => {
     const html = await readFixture("ddg", "lite-results.html");
     const blocked = parseResults(html, [], ["example.com"]);

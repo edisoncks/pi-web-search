@@ -27,4 +27,5 @@ deliberately rather than pasting live responses.
 | `ddg/challenge.html`            | Challenge classification                                                  |
 | `ddg/drift.html`                | Drift classification (`uddg=` present, zero parsed results)               |
 | `ddg/no-results-nav.html`       | A non-web `uddg=` nav link is empty, not drift                            |
+| `ddg/empty-query-echo.html`     | Echoed challenge words are empty, not a challenge                         |
 | `ddg/empty.html`                | Empty classification                                                      |

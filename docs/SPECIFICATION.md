@@ -297,7 +297,7 @@ Decided on the **unfiltered** extraction, in order:
    applied to the emitted set. Filtering every result away is an empty success,
    never `drift`.
 2. `detectDuckDuckGoChallenge(html)` matches
-   `/challenge-form|anomaly|captcha|Unfortunately, bots use DuckDuckGo/i` →
+   `/challenge-form|Unfortunately, bots use DuckDuckGo/i` →
    `{ kind: "challenge", reason: "DuckDuckGo returned an anti-bot challenge page" }`.
 3. HTML contains a result-shaped redirect — `uddg=` whose target is an
    `http(s)` URL, i.e. `/uddg=(?:https?%3A%2F%2F|https?:\/\/)/i` →
@@ -305,10 +305,13 @@ Decided on the **unfiltered** extraction, in order:
 4. Else `{ kind: "empty" }`.
 
 The challenge detector is only consulted when zero results were extracted, so
-snippet text cannot trip the breaker. Drift detection is a **heuristic** on the
-served markup: a page that carries a web-target `uddg=` link outside its result
-rows can still be misreported as drift, but a bare non-web navigation link no
-longer is.
+snippet text cannot trip the breaker. Its markers are structural
+(`challenge-form` or the page's distinctive sentence), not bare words, so an
+empty page that echoes `captcha`/`anomaly` from the query stays `empty`; the
+cost is that a challenge page carrying neither marker is read as `empty` and
+cached for the TTL. Drift detection is a **heuristic** on the served markup: a
+page that carries a web-target `uddg=` link outside its result rows can still
+be misreported as drift, but a bare non-web navigation link no longer is.
 
 ### 6.6 Failure and retry semantics
 
@@ -487,4 +490,5 @@ implementation; `npm test` runs everything.
 | `tests/fixtures/ddg/challenge.html`            | §6.5 challenge classification                   |
 | `tests/fixtures/ddg/drift.html`                | §6.5 drift classification                       |
 | `tests/fixtures/ddg/no-results-nav.html`       | §6.5 a non-web `uddg=` link is empty, not drift |
+| `tests/fixtures/ddg/empty-query-echo.html`     | §6.5 echoed challenge words are empty           |
 | `tests/fixtures/ddg/empty.html`                | §6.5 empty classification                       |
