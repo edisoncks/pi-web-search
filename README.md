@@ -1,15 +1,19 @@
 # pi-web-search
 
-Two web-search tools for [pi](https://pi.dev):
+Three web tools for [pi](https://pi.dev):
 
-- **`web_search_exa`** — primary provider, Exa MCP over HTTPS. No external
-  binary.
-- **`web_search_ddg`** — fallback, DuckDuckGo Lite through the
+- **`web_search_exa`** — primary search provider, Exa MCP over HTTPS. No
+  external binary.
+- **`web_search_ddg`** — fallback search, DuckDuckGo Lite through the
   [Obscura](https://github.com/h4ckf0r0day/obscura) CLI.
+- **`web_fetch`** — extracts readable text from a specific URL through Obscura,
+  capped at 4000 UTF-16 code units, so the model can inspect a result beyond its
+  title and snippet. Longer pages are partial reads.
 
-The policy is **Exa first; DuckDuckGo only when Exa fails or the user explicitly
-asks for it.** It is encoded in the tools' system-prompt guidance, so the model
-follows it automatically.
+The search policy is **Exa first; DuckDuckGo only when Exa fails or the user
+explicitly asks for it.** It is encoded in the tools' system-prompt guidance,
+which also tells the model to treat a search result as a pointer and read the
+relevant URLs with `web_fetch` before relying on them.
 
 ## Requirements
 
@@ -20,9 +24,9 @@ follows it automatically.
 - `PI_WEB_SEARCH_EXA_MCP_URL` — optional. Overrides the Exa MCP endpoint
   (default `https://mcp.exa.ai/mcp`) for a proxy or self-hosted endpoint. Only
   point it at a trusted host: `EXA_API_KEY` is sent there when set.
-- `obscura` on `PATH` — required **only** for `web_search_ddg`. Obscura is a
-  separate dependency and is not installed by this package; install it from its
-  official instructions.
+- `obscura` on `PATH` — required for `web_search_ddg` and `web_fetch`.
+  Obscura is a separate dependency and is not installed by this package; install
+  it from its official instructions.
 
 ## Install
 

@@ -1,7 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  createFetchParameters,
   createSearchParameters,
+  normalizeFetchParams,
   normalizeSearchParams,
 } from "../lib/params.js";
 
@@ -59,5 +61,36 @@ describe("createSearchParameters", () => {
       "numResults",
       "query",
     ]);
+  });
+});
+
+describe("normalizeFetchParams", () => {
+  it("normalizes a schemeless URL to an absolute https URL", () => {
+    assert.deepEqual(normalizeFetchParams({ url: " example.com/a " }), {
+      url: "https://example.com/a",
+    });
+    assert.deepEqual(normalizeFetchParams({ url: "https://b.org" }), {
+      url: "https://b.org/",
+    });
+  });
+
+  it("rejects blank, non-http, and unparseable URLs", () => {
+    for (const url of [
+      "",
+      "   ",
+      "ftp://example.com",
+      "https://exa mple.com",
+    ]) {
+      assert.throws(() => normalizeFetchParams({ url }), /Invalid URL/);
+    }
+  });
+});
+
+describe("createFetchParameters", () => {
+  it("declares the single documented url field", () => {
+    const schema = createFetchParameters() as {
+      properties?: Record<string, unknown>;
+    };
+    assert.deepEqual(Object.keys(schema.properties ?? {}).sort(), ["url"]);
   });
 });

@@ -29,3 +29,4 @@ deliberately rather than pasting live responses.
 | `ddg/no-results-nav.html`       | A non-web `uddg=` nav link is empty, not drift                            |
 | `ddg/empty-query-echo.html`     | Echoed challenge words are empty, not a challenge                         |
 | `ddg/empty.html`                | Empty classification                                                      |
+| `fetch/page.md`                 | `web_fetch` markdown extraction                                           |

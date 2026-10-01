@@ -12,21 +12,23 @@ if the two conflict, the SPEC wins.
 | `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                     | `types`, `filter`                                |
 | `lib/filter.ts`     | Pure domain normalization and matching.                                                                       | —                                                |
 | `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals. | `types`                                          |
-| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                                                         | `types`, Pi host                                 |
+| `lib/format.ts`     | Numbered result blocks, fetched-page blocks, and Pi-host output truncation.                                   | `types`, Pi host                                 |
 | `lib/tools.ts`      | Tool metadata, execute wiring, and the injected provider interface.                                           | `params`, `format`, `types`, Pi host             |
 | `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime with a sentinel fallback.                              | `types`                                          |
 | `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version`, `format` |
 | `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`, `format`            |
-| `index.ts`          | Extension factory: shared DuckDuckGo state, then `registerWebSearchTools`.                                    | `policy`, `exa`, `duckduckgo`, `tools`           |
+| `lib/fetch.ts`      | Obscura page-fetch transport, content capping, cache/dedup, and the global concurrency policy.                | `types`, `policy`, `format`                      |
+| `index.ts`          | Extension factory: shared DuckDuckGo and fetch state, then `registerWebTools`.                                | `policy`, `exa`, `duckduckgo`, `fetch`, `tools`  |
 
 ## Dependency graph
 
 ```text
-index ──▶ { policy, exa, duckduckgo, tools }
+index ──▶ { policy, exa, duckduckgo, fetch, tools }
 tools ──▶ { params, format, types, Pi host }
 params ──▶ { filter, types }
 exa ──▶ { filter, types, policy, version, format }
 duckduckgo ──▶ { filter, types, policy, format }
+fetch ──▶ { types, policy, format }
 policy ──▶ { types }
 format ──▶ { types, Pi host }
 filter ──▶ ∅
@@ -44,7 +46,7 @@ between `index` and the providers; nothing below `index` imports `index`.
 
 ```text
 tool call
-└─ registerWebSearchTools execute  (lib/tools.ts)
+└─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeSearchParams  (lib/params.ts)
    ├─ searchExaForTool  (exa.ts)
    │  └─ searchExa
@@ -64,7 +66,7 @@ tool call
 
 ```text
 tool call
-└─ registerWebSearchTools execute  (lib/tools.ts)
+└─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeSearchParams  (lib/params.ts)
    ├─ searchDuckDuckGoForTool  (duckduckgo.ts)
    │  └─ searchDuckDuckGo
@@ -76,6 +78,25 @@ tool call
    │              ├─ buildObscuraArgs  →  execFile("obscura", …)
    │              └─ classifyDuckDuckGoResponse  (extract + domain filter)
    └─ formatSearchToolResult  (lib/format.ts)
+```
+
+### Page fetch (web_fetch)
+
+```text
+tool call
+└─ registerWebTools execute  (lib/tools.ts)
+   ├─ normalizeFetchParams  (lib/params.ts)
+   ├─ fetchPageForTool  (fetch.ts)
+   │  └─ fetchPage
+   │     ├─ cache hit? return cached page
+   │     ├─ in-flight hit? await the shared promise
+   │     └─ shared work (no caller signal)
+   │        ├─ getFetchSignal  (one 30 s deadline, before slot wait)
+   │        ├─ withFetchSlot  (global cap of 3; deadline includes queue time)
+   │        └─ fetchPageAttempt  (execFile uses the shared deadline)
+   │           ├─ buildObscuraFetchArgs  →  execFile("obscura", …)
+   │           └─ trim + cap page content
+   └─ formatFetchToolResult  (lib/format.ts)
 ```
 
 ## Design rationale
@@ -130,6 +151,17 @@ code, and why the implementation made them.
   fixed page that the caller slices. Counting `numResults` in the key would
   fetch the same page once per result count.
 
+- **Fetch failures are reported, not thrown.** `fetchPageForTool` turns a failed
+  fetch into a `Failed to fetch page:` result so the model can react (retry,
+  pick another URL) instead of losing the turn. Two failures are exceptions and
+  fail the call: a missing `obscura` (no URL could have been fetched) and
+  `UnsupportedRuntimeError` (an environment fault, §0).
+
+- **Page content and browser processes are both bounded.** Each page is trimmed
+  to 4000 UTF-16 code units, and the global slot limit keeps at most three
+  Obscura processes alive at once — across every parallel `web_fetch` call, not
+  just one.
+
 ## Patterns and invariants
 
 These are easy to break accidentally. The behavior tests pin most of them, but
@@ -170,7 +202,16 @@ know them before you touch the relevant code.
   error.
 - **The prompt strings are behavior.** The Exa-first/fallback policy lives in
   the tool `description`/`promptSnippet`/`promptGuidelines` (SPEC §3); changing
-  them changes what the model does.
+  them changes what the model does. Both search tools carry a `web_fetch`
+  guideline so a result is read, not trusted.
+- **A fetch owns its own deadline.** `getFetchSignal` is created once per shared
+  fetch, before it waits for a slot, so queue time and process time share one 30 s
+  budget and a co-waiter cannot reset it.
+- **Fetched page content is untrusted.** `formatFetchedPage` labels it as data,
+  not instructions, before it enters the model's context.
+- **The fetch slot is global.** `withFetchSlot` counts and queues on the shared
+  `FetchState`, so the cap binds across parallel `web_fetch` calls. A waiter that
+  aborts while queued is removed without freeing a slot it never held.
 
 ## Packaging
 

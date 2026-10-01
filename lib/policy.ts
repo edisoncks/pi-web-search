@@ -4,9 +4,18 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors --
    AbortSignal.reason is an arbitrary value by spec and must be rethrown
    verbatim; wrapping it would rewrite an aborted caller's error. */
-import { REQUEST_TIMEOUT_MS } from "./types.js";
+import {
+  FETCH_CACHE_MAX_ENTRIES,
+  FETCH_CACHE_TTL_MS,
+  FETCH_CONCURRENCY,
+  FETCH_TIMEOUT_MS,
+  REQUEST_TIMEOUT_MS,
+} from "./types.js";
 import type {
   DuckDuckGoState,
+  FetchedPage,
+  FetchSlotWaiter,
+  FetchState,
   NormalizedSearchParams,
   WebSearchResult,
 } from "./types.js";
@@ -57,6 +66,15 @@ export function createDuckDuckGoState(): DuckDuckGoState {
   };
 }
 
+export function createFetchState(): FetchState {
+  return {
+    cache: new Map(),
+    inFlight: new Map(),
+    active: 0,
+    waiters: [],
+  };
+}
+
 /**
  * The two `AbortSignal` statics the runtime guard needs. Injectable so tests
  * can simulate an older runtime without mutating the global `AbortSignal`.
@@ -87,13 +105,38 @@ export function assertSupportedRuntime(
  * request, so the 15 s bound applies to the whole search instead of resetting
  * on every handshake and retry round trip.
  */
+function combineWithTimeout(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+  statics: AbortSignalStatics,
+): AbortSignal {
+  assertSupportedRuntime(statics);
+  const timeoutSignal = statics.timeout(timeoutMs);
+  return signal ? statics.any([signal, timeoutSignal]) : timeoutSignal;
+}
+
+/**
+ * Combine the caller's signal with the one timeout shared by every network
+ * round trip of a single search. Call this once per search, not once per
+ * request, so the 15 s bound applies to the whole search instead of resetting
+ * on every handshake and retry round trip.
+ */
 export function getSearchSignal(
   signal: AbortSignal | undefined,
   statics: AbortSignalStatics = AbortSignal,
 ): AbortSignal {
-  assertSupportedRuntime(statics);
-  const timeoutSignal = statics.timeout(REQUEST_TIMEOUT_MS);
-  return signal ? statics.any([signal, timeoutSignal]) : timeoutSignal;
+  return combineWithTimeout(signal, REQUEST_TIMEOUT_MS, statics);
+}
+
+/**
+ * The fetch equivalent of `getSearchSignal`: the timeout the shared work for
+ * one URL owns, so a co-waiter cannot reset the bound.
+ */
+export function getFetchSignal(
+  signal: AbortSignal | undefined,
+  statics: AbortSignalStatics = AbortSignal,
+): AbortSignal {
+  return combineWithTimeout(signal, FETCH_TIMEOUT_MS, statics);
 }
 
 export function errorMessage(error: unknown): string {
@@ -103,6 +146,18 @@ export function errorMessage(error: unknown): string {
 
 export function shortErrorMessage(error: unknown): string {
   return errorMessage(error).replace(/\s+/gu, " ").slice(0, 300);
+}
+
+const OBSCURA_MISSING_PATTERN =
+  /spawn obscura ENOENT|ENOENT.*obscura|obscura.*not found/iu;
+
+/**
+ * Whether a failure means the `obscura` binary is not on `PATH`. Both the
+ * DuckDuckGo provider and the page-fetch provider depend on it, so the
+ * detection lives here instead of being duplicated per provider.
+ */
+export function isObscuraMissingError(error: unknown): boolean {
+  return OBSCURA_MISSING_PATTERN.test(errorMessage(error));
 }
 
 export function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -243,7 +298,8 @@ export async function withDuckDuckGoRequestSlot<T>(
   }
 }
 
-function isAbortError(error: unknown): boolean {
+/** Whether a failure is an abort/timeout rather than a real provider fault. */
+export function isAbortError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === "AbortError") return true;
   if (typeof error !== "object" || error === null) return false;
   const candidate = error as { name?: unknown; code?: unknown };
@@ -305,5 +361,103 @@ export function cacheDuckDuckGoResults(
     const oldestKey = state.cache.keys().next().value;
     if (oldestKey === undefined) break;
     state.cache.delete(oldestKey);
+  }
+}
+
+export function getCachedFetchPage(
+  state: FetchState,
+  url: string,
+): FetchedPage | undefined {
+  const entry = state.cache.get(url);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= Date.now()) {
+    state.cache.delete(url);
+    return undefined;
+  }
+  return entry.page;
+}
+
+/** Cache a fetched page, evicting expired entries and the oldest over the cap. */
+export function cacheFetchPage(
+  state: FetchState,
+  url: string,
+  page: FetchedPage,
+): void {
+  const now = Date.now();
+  for (const [entryKey, entry] of state.cache) {
+    if (entry.expiresAt <= now) state.cache.delete(entryKey);
+  }
+
+  state.cache.delete(url);
+  state.cache.set(url, {
+    page,
+    expiresAt: now + FETCH_CACHE_TTL_MS,
+  });
+
+  while (state.cache.size > FETCH_CACHE_MAX_ENTRIES) {
+    const oldestKey = state.cache.keys().next().value;
+    if (oldestKey === undefined) break;
+    state.cache.delete(oldestKey);
+  }
+}
+
+function acquireFetchSlot(
+  state: FetchState,
+  signal: AbortSignal | undefined,
+): Promise<void> {
+  throwIfAborted(signal);
+  if (state.active < FETCH_CONCURRENCY) {
+    state.active += 1;
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const waiter: FetchSlotWaiter = { resolve, cleanup: () => {} };
+    const onAbort = () => {
+      const index = state.waiters.indexOf(waiter);
+      if (index >= 0) state.waiters.splice(index, 1);
+      waiter.cleanup();
+      reject(
+        signal?.reason ??
+          new DOMException("The operation was aborted", "AbortError"),
+      );
+    };
+    waiter.cleanup = () => signal?.removeEventListener("abort", onAbort);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    state.waiters.push(waiter);
+  });
+}
+
+function releaseFetchSlot(state: FetchState): void {
+  const next = state.waiters.shift();
+  if (!next) {
+    state.active = Math.max(0, state.active - 1);
+    return;
+  }
+  // Hand the slot straight to the next waiter, so `active` is unchanged.
+  // Clean up before resolving so a late abort cannot reject a fetch that has
+  // already been granted its slot.
+  next.cleanup();
+  next.resolve();
+}
+
+/**
+ * A global concurrency gate for page fetches. The limit lives on the shared
+ * `FetchState`, so it bounds Obscura processes across every concurrent
+ * `web_fetch` call, not just the URLs of one call. A waiter that aborts while
+ * queued is removed without freeing a slot it never held; a running holder
+ * releases its slot only when its operation settles.
+ */
+export async function withFetchSlot<T>(
+  state: FetchState,
+  signal: AbortSignal | undefined,
+  operation: () => Promise<T>,
+): Promise<T> {
+  await acquireFetchSlot(state, signal);
+  try {
+    throwIfAborted(signal);
+    return await operation();
+  } finally {
+    releaseFetchSlot(state);
   }
 }

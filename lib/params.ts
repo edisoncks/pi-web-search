@@ -6,7 +6,9 @@ import {
   DEFAULT_NUM_RESULTS,
   MAX_NUM_RESULTS,
   MIN_QUERY_LENGTH,
+  type NormalizedFetchParams,
   type NormalizedSearchParams,
+  type WebFetchParams,
   type WebSearchParams,
 } from "./types.js";
 import { normalizeDomains } from "./filter.js";
@@ -38,6 +40,48 @@ export function normalizeSearchParams(
     blockedDomains: normalizeDomains(params.blocked_domains),
     numResults,
   };
+}
+
+/**
+ * Normalize one fetch URL. A scheme-less value gets `https://`; anything that
+ * still does not parse, or is not `http(s)`, throws `Invalid URL: <value>`.
+ */
+export function normalizeFetchUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error(`Invalid URL: ${value}`);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+  } catch {
+    throw new Error(`Invalid URL: ${value}`);
+  }
+  if (
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    !parsed.hostname
+  ) {
+    throw new Error(`Invalid URL: ${value}`);
+  }
+  return parsed.toString();
+}
+
+export function normalizeFetchParams(
+  params: WebFetchParams,
+): NormalizedFetchParams {
+  if (typeof params.url !== "string") {
+    throw new Error(`Invalid URL: ${String(params.url)}`);
+  }
+  return { url: normalizeFetchUrl(params.url) };
+}
+
+export function createFetchParameters() {
+  return Type.Object({
+    url: Type.String({
+      minLength: 1,
+      description:
+        "Absolute http(s) URL to fetch. Use a URL returned by a web search.",
+    }),
+  });
 }
 
 export function createSearchParameters() {
