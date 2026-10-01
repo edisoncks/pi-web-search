@@ -137,6 +137,41 @@ describe("fetch behavior: results, errors, and the global slot", () => {
     assert.match(result.text, /Error: timed out/);
   });
 
+  // Regression: a caller whose signal is already aborted must not start the
+  // shared fetch. Without the entry check the attempt still ran (a wasted
+  // Obscura launch holding a global slot) and, when it later failed, left the
+  // shared promise without handlers — an unhandledRejection that can kill the
+  // host process.
+  it("rejects an already-aborted caller without starting the shared fetch", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const state = createFetchState();
+    let calls = 0;
+    const rejections: unknown[] = [];
+    const onUnhandled = (reason: unknown) => rejections.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      await assert.rejects(
+        fetchPageForTool(
+          { url: "https://e.com" },
+          state,
+          controller.signal,
+          async () => {
+            calls += 1;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            throw new Error("boom");
+          },
+        ),
+      );
+      // Give the (never-started) attempt time to have failed if it wrongly ran.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+    assert.equal(calls, 0);
+    assert.equal(rejections.length, 0);
+  });
+
   it("propagates a caller abort instead of reporting an error", async () => {
     const controller = new AbortController();
     const state = createFetchState();

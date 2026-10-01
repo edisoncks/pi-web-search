@@ -19,6 +19,7 @@ import {
   isAbortError,
   isObscuraMissingError,
   shortErrorMessage,
+  throwIfAborted,
   UnsupportedRuntimeError,
   waitForPromiseWithSignal,
   withFetchSlot,
@@ -104,6 +105,11 @@ export async function fetchPage(
   signal: AbortSignal | undefined,
   attempt: FetchAttempt = fetchPageAttempt,
 ): Promise<FetchedPage> {
+  // Reject an already-aborted caller before anything runs: the shared work
+  // deliberately ignores caller signals, so without this check a dead caller
+  // would still launch Obscura and hold a global slot — and a fetch that then
+  // fails would leave `tracked` with no handlers (unhandled rejection).
+  throwIfAborted(signal);
   const cached = getCachedFetchPage(state, url);
   if (cached) return cached;
 
