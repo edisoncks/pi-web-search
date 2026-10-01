@@ -1,7 +1,7 @@
 {
   "name": "pi-web-search",
   "version": "2.1.0",
-  "description": "Two web-search tools for Pi: web_search_exa (primary) and web_search_ddg (fallback via DuckDuckGo Lite through Obscura).",
+  "description": "Three web tools for Pi: web_search_exa (primary search), web_search_ddg (fallback search via DuckDuckGo Lite through Obscura), and web_fetch (read specific URLs through Obscura).",
   "type": "module",
   "license": "MIT",
   "private": false,
@@ -11,7 +11,8 @@
     "pi",
     "web-search",
     "exa",
-    "duckduckgo"
+    "duckduckgo",
+    "fetch"
   ],
   "engines": {
     "node": ">=22.19.0"

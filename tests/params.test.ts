@@ -1,7 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  createFetchParameters,
   createSearchParameters,
+  normalizeFetchParams,
   normalizeSearchParams,
 } from "../lib/params.js";
 
@@ -59,5 +61,49 @@ describe("createSearchParameters", () => {
       "numResults",
       "query",
     ]);
+  });
+});
+
+describe("normalizeFetchParams", () => {
+  it("normalizes schemeless URLs and dedupes in first-seen order", () => {
+    assert.deepEqual(
+      normalizeFetchParams({
+        urls: [" example.com/a ", "https://example.com/a", "https://b.org"],
+      }),
+      { urls: ["https://example.com/a", "https://b.org/"] },
+    );
+  });
+
+  it("rejects blank, non-http, and unparseable URLs", () => {
+    for (const url of [
+      "",
+      "   ",
+      "ftp://example.com",
+      "https://exa mple.com",
+    ]) {
+      assert.throws(() => normalizeFetchParams({ urls: [url] }), /Invalid URL/);
+    }
+  });
+
+  it("requires at least one URL", () => {
+    assert.throws(() => normalizeFetchParams({ urls: [] }), /At least 1 URL/);
+  });
+
+  it("caps the batch at five distinct URLs", () => {
+    const five = Array.from({ length: 5 }, (_, i) => `https://e.com/${i}`);
+    assert.equal(normalizeFetchParams({ urls: five }).urls.length, 5);
+    assert.throws(
+      () => normalizeFetchParams({ urls: [...five, "https://e.com/5"] }),
+      /At most 5 URLs/,
+    );
+  });
+});
+
+describe("createFetchParameters", () => {
+  it("declares the single documented urls field", () => {
+    const schema = createFetchParameters() as {
+      properties?: Record<string, unknown>;
+    };
+    assert.deepEqual(Object.keys(schema.properties ?? {}).sort(), ["urls"]);
   });
 });

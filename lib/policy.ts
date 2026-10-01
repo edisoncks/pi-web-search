@@ -4,9 +4,16 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors --
    AbortSignal.reason is an arbitrary value by spec and must be rethrown
    verbatim; wrapping it would rewrite an aborted caller's error. */
-import { REQUEST_TIMEOUT_MS } from "./types.js";
+import {
+  FETCH_CACHE_MAX_ENTRIES,
+  FETCH_CACHE_TTL_MS,
+  FETCH_TIMEOUT_MS,
+  REQUEST_TIMEOUT_MS,
+} from "./types.js";
 import type {
   DuckDuckGoState,
+  FetchedPage,
+  FetchState,
   NormalizedSearchParams,
   WebSearchResult,
 } from "./types.js";
@@ -57,6 +64,13 @@ export function createDuckDuckGoState(): DuckDuckGoState {
   };
 }
 
+export function createFetchState(): FetchState {
+  return {
+    cache: new Map(),
+    inFlight: new Map(),
+  };
+}
+
 /**
  * The two `AbortSignal` statics the runtime guard needs. Injectable so tests
  * can simulate an older runtime without mutating the global `AbortSignal`.
@@ -87,13 +101,38 @@ export function assertSupportedRuntime(
  * request, so the 15 s bound applies to the whole search instead of resetting
  * on every handshake and retry round trip.
  */
+function combineWithTimeout(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+  statics: AbortSignalStatics,
+): AbortSignal {
+  assertSupportedRuntime(statics);
+  const timeoutSignal = statics.timeout(timeoutMs);
+  return signal ? statics.any([signal, timeoutSignal]) : timeoutSignal;
+}
+
+/**
+ * Combine the caller's signal with the one timeout shared by every network
+ * round trip of a single search. Call this once per search, not once per
+ * request, so the 15 s bound applies to the whole search instead of resetting
+ * on every handshake and retry round trip.
+ */
 export function getSearchSignal(
   signal: AbortSignal | undefined,
   statics: AbortSignalStatics = AbortSignal,
 ): AbortSignal {
-  assertSupportedRuntime(statics);
-  const timeoutSignal = statics.timeout(REQUEST_TIMEOUT_MS);
-  return signal ? statics.any([signal, timeoutSignal]) : timeoutSignal;
+  return combineWithTimeout(signal, REQUEST_TIMEOUT_MS, statics);
+}
+
+/**
+ * The fetch equivalent of `getSearchSignal`: one bound for a whole batch of
+ * page fetches, so five pages do not each get a fresh 30 s budget.
+ */
+export function getFetchSignal(
+  signal: AbortSignal | undefined,
+  statics: AbortSignalStatics = AbortSignal,
+): AbortSignal {
+  return combineWithTimeout(signal, FETCH_TIMEOUT_MS, statics);
 }
 
 export function errorMessage(error: unknown): string {
@@ -315,6 +354,43 @@ export function cacheDuckDuckGoResults(
   });
 
   while (state.cache.size > DDG_CACHE_MAX_ENTRIES) {
+    const oldestKey = state.cache.keys().next().value;
+    if (oldestKey === undefined) break;
+    state.cache.delete(oldestKey);
+  }
+}
+
+export function getCachedFetchPage(
+  state: FetchState,
+  url: string,
+): FetchedPage | undefined {
+  const entry = state.cache.get(url);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= Date.now()) {
+    state.cache.delete(url);
+    return undefined;
+  }
+  return entry.page;
+}
+
+/** Cache a fetched page, evicting expired entries and the oldest over the cap. */
+export function cacheFetchPage(
+  state: FetchState,
+  url: string,
+  page: FetchedPage,
+): void {
+  const now = Date.now();
+  for (const [entryKey, entry] of state.cache) {
+    if (entry.expiresAt <= now) state.cache.delete(entryKey);
+  }
+
+  state.cache.delete(url);
+  state.cache.set(url, {
+    page,
+    expiresAt: now + FETCH_CACHE_TTL_MS,
+  });
+
+  while (state.cache.size > FETCH_CACHE_MAX_ENTRIES) {
     const oldestKey = state.cache.keys().next().value;
     if (oldestKey === undefined) break;
     state.cache.delete(oldestKey);

@@ -21,12 +21,19 @@ interface CapturedCall {
   hasSignal: boolean;
 }
 
+interface CapturedFetch {
+  urls: string[];
+  hasSignal: boolean;
+}
+
 function setup(): {
   tools: ToolDefinition[];
   calls: CapturedCall[];
+  fetchCalls: CapturedFetch[];
 } {
   const tools: ToolDefinition[] = [];
   const calls: CapturedCall[] = [];
+  const fetchCalls: CapturedFetch[] = [];
   const pi = {
     registerTool: (tool: ToolDefinition) => {
       tools.push(tool);
@@ -51,9 +58,16 @@ function setup(): {
       });
       return result("DuckDuckGo");
     },
+    fetchPages: async (params, signal) => {
+      fetchCalls.push({
+        urls: params.urls,
+        hasSignal: signal !== undefined,
+      });
+      return result("Obscura");
+    },
   });
 
-  return { tools, calls };
+  return { tools, calls, fetchCalls };
 }
 
 function toolByName(tools: ToolDefinition[], name: string): ToolDefinition {
@@ -71,11 +85,11 @@ async function execute(
 }
 
 describe("web search tool definitions", () => {
-  it("registers exactly the two documented tools in order", () => {
+  it("registers exactly the three documented tools in order", () => {
     const { tools } = setup();
     assert.deepEqual(
       tools.map((tool) => tool.name),
-      ["web_search_exa", "web_search_ddg"],
+      ["web_search_exa", "web_search_ddg", "web_fetch"],
     );
   });
 
@@ -112,6 +126,31 @@ describe("web search tool definitions", () => {
       ddg.promptGuidelines?.some((guideline) =>
         /web_search_exa/.test(guideline),
       ),
+    );
+  });
+
+  // A search result is a pointer, not evidence. Both search tools must send the
+  // model on to web_fetch, otherwise the model answers from a clickbait title.
+  it("points both search tools at web_fetch for verification", () => {
+    const { tools } = setup();
+    for (const name of ["web_search_exa", "web_search_ddg"]) {
+      const tool = toolByName(tools, name);
+      assert.ok(
+        tool.promptGuidelines?.some((guideline) => /web_fetch/.test(guideline)),
+        `${name} must point at web_fetch`,
+      );
+    }
+  });
+
+  it("describes web_fetch as the follow-up reader", () => {
+    const fetch = toolByName(setup().tools, "web_fetch");
+    assert.equal(fetch.label, "Web Fetch");
+    assert.match(fetch.promptSnippet ?? "", /fetch/i);
+    assert.match(fetch.description, /web_fetch/);
+    assert.match(fetch.description, /unverified/i);
+    assert.ok(fetch.promptGuidelines?.length);
+    assert.ok(
+      fetch.promptGuidelines?.some((guideline) => /untrusted/i.test(guideline)),
     );
   });
 });
@@ -163,5 +202,43 @@ describe("web search tool execute wiring", () => {
       /at least 2 characters/,
     );
     assert.equal(calls.length, 0);
+  });
+
+  it("routes web_fetch to the fetch provider and normalizes urls", async () => {
+    const { tools, fetchCalls } = setup();
+    const output = await execute(toolByName(tools, "web_fetch"), {
+      // The duplicate collapses; schemeless values gain https://.
+      urls: ["example.com/a", "https://example.com/a", "https://example.org/b"],
+    });
+
+    assert.deepEqual(fetchCalls, [
+      {
+        urls: ["https://example.com/a", "https://example.org/b"],
+        hasSignal: false,
+      },
+    ]);
+    assert.deepEqual(output.details, { provider: "obscura", resultCount: 1 });
+  });
+
+  it("forwards the abort signal to the fetch provider", async () => {
+    const { tools, fetchCalls } = setup();
+    const controller = new AbortController();
+    await execute(
+      toolByName(tools, "web_fetch"),
+      { urls: ["https://example.com/a"] },
+      controller.signal,
+    );
+    assert.equal(fetchCalls[0].hasSignal, true);
+  });
+
+  it("rejects invalid fetch params before calling the provider", async () => {
+    const { tools, fetchCalls } = setup();
+    await assert.rejects(
+      execute(toolByName(tools, "web_fetch"), {
+        urls: ["https://exa mple.com"],
+      }),
+      /Invalid URL/,
+    );
+    assert.equal(fetchCalls.length, 0);
   });
 });

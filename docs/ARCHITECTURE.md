@@ -12,21 +12,23 @@ if the two conflict, the SPEC wins.
 | `lib/params.ts`     | Parameter normalization and the TypeBox parameter schema.                                                     | `types`, `filter`                                |
 | `lib/filter.ts`     | Pure domain normalization and matching.                                                                       | —                                                |
 | `lib/policy.ts`     | Cross-cutting state and policy: rate limiting, cache, circuit breaker, request serialization, dedup, signals. | `types`                                          |
-| `lib/format.ts`     | Numbered result blocks and Pi-host output truncation.                                                         | `types`, Pi host                                 |
+| `lib/format.ts`     | Numbered result blocks, fetched-page blocks, and Pi-host output truncation.                                   | `types`, Pi host                                 |
 | `lib/tools.ts`      | Tool metadata, execute wiring, and the injected provider interface.                                           | `params`, `format`, `types`, Pi host             |
 | `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime with a sentinel fallback.                              | `types`                                          |
 | `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version`, `format` |
 | `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`, `format`            |
-| `index.ts`          | Extension factory: shared DuckDuckGo state, then `registerWebSearchTools`.                                    | `policy`, `exa`, `duckduckgo`, `tools`           |
+| `lib/fetch.ts`      | Obscura page-fetch transport, content capping, cache/dedup, and the batch policy.                             | `types`, `policy`, `format`                      |
+| `index.ts`          | Extension factory: shared DuckDuckGo and fetch state, then `registerWebSearchTools`.                          | `policy`, `exa`, `duckduckgo`, `fetch`, `tools`  |
 
 ## Dependency graph
 
 ```text
-index ──▶ { policy, exa, duckduckgo, tools }
+index ──▶ { policy, exa, duckduckgo, fetch, tools }
 tools ──▶ { params, format, types, Pi host }
 params ──▶ { filter, types }
 exa ──▶ { filter, types, policy, version, format }
 duckduckgo ──▶ { filter, types, policy, format }
+fetch ──▶ { types, policy, format }
 policy ──▶ { types }
 format ──▶ { types, Pi host }
 filter ──▶ ∅
@@ -76,6 +78,25 @@ tool call
    │              ├─ buildObscuraArgs  →  execFile("obscura", …)
    │              └─ classifyDuckDuckGoResponse  (extract + domain filter)
    └─ formatSearchToolResult  (lib/format.ts)
+```
+
+### Page fetch (web_fetch)
+
+```text
+tool call
+└─ registerWebSearchTools execute  (lib/tools.ts)
+   ├─ normalizeFetchParams  (lib/params.ts)
+   ├─ fetchPagesForTool  (fetch.ts)
+   │  ├─ getFetchSignal  (one caller-signal + 30 s batch deadline)
+   │  ├─ mapWithConcurrency(3)
+   │  │  └─ fetchPage
+   │  │     ├─ cache hit? return cached page
+   │  │     ├─ in-flight hit? await the shared promise
+   │  │     └─ fetchPageAttempt
+   │  │        ├─ buildObscuraFetchArgs  →  execFile("obscura", …)
+   │  │        └─ trim + cap page content
+   │  └─ formatFetchedPages
+   └─ formatFetchToolResult  (lib/format.ts)
 ```
 
 ## Design rationale
@@ -130,6 +151,15 @@ code, and why the implementation made them.
   fixed page that the caller slices. Counting `numResults` in the key would
   fetch the same page once per result count.
 
+- **A fetch failure is per-URL; a missing binary is not.** One dead link must
+  not lose the four pages that loaded, so `fetchPagesForTool` turns a URL's
+  failure into an `Error:` entry and keeps the batch. A missing `obscura` is the
+  exception: every entry would repeat the same PATH hint, so it fails the call.
+
+- **Page content is capped before it reaches the model.** Each page is trimmed
+  to 4000 characters and the batch runs at most three Obscura processes at once,
+  so a search followed by a fetch can flood neither the context nor the machine.
+
 ## Patterns and invariants
 
 These are easy to break accidentally. The behavior tests pin most of them, but
@@ -170,7 +200,14 @@ know them before you touch the relevant code.
   error.
 - **The prompt strings are behavior.** The Exa-first/fallback policy lives in
   the tool `description`/`promptSnippet`/`promptGuidelines` (SPEC §3); changing
-  them changes what the model does.
+  them changes what the model does. Both search tools carry a `web_fetch`
+  guideline so a result is read, not trusted.
+- **The fetch batch shares one deadline.** `getFetchSignal` is called once per
+  batch, not per URL, so five pages do not each get a fresh 30 s budget.
+- **Fetched page content is untrusted.** `formatFetchedPages` labels it as data,
+  not instructions, before it enters the model's context.
+- **Fetch outcomes keep caller order.** The concurrency pool reorders neither
+  results nor errors.
 
 ## Packaging
 
