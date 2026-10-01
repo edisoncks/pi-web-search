@@ -424,8 +424,9 @@ ENOENT`, `ENOENT.*obscura`, or `obscura.*not found` selects the PATH hint.
   `https://`. The result must then parse as an absolute `http(s)` URL with a
   hostname; anything else throws `Invalid URL: <value>`. A missing or
   non-string `url` throws the same error with the value stringified.
-- Page content is trimmed and capped at **4000 characters**. A longer page is cut
-  without splitting a surrogate pair, reported as truncated, and followed by
+- Page content is trimmed and capped at **4000 UTF-16 code units** (the tool
+  output says "characters"). A longer page is cut at a code-point boundary — a
+  trailing high surrogate is not split — reported as truncated, and followed by
   `[Page content truncated to 4000 characters.]`.
 
 ### 7.3 Deadline, cache, dedup, and slots
@@ -433,13 +434,17 @@ ENOENT`, `ENOENT.*obscura`, or `obscura.*not found` selects the PATH hint.
 - The shared work for a URL carries one 30 s timeout, created once per fetch. It
   is not tied to any caller's signal, so an aborting caller neither cancels it
   nor rejects a co-waiter; each caller applies its own signal only while
-  awaiting.
+  awaiting. A caller whose signal is already aborted rejects immediately,
+  before any fetch starts.
 - The cache key is the normalized URL. A successful page is stored with a
   10 minute TTL and a 64-entry cap; expired entries are purged on write and the
   oldest insertion is evicted over the cap. Failures are never cached.
 - Concurrent identical fetches share one attempt, and concurrent distinct fetches
-  share a global slot limit of 3 (§7.1). A caller that aborts while queued for a
-  slot is removed without freeing a slot it never held.
+  share a global slot limit of 3 (§7.1). The shared work acquires its slot
+  without any caller's signal, so in the shipped wiring no caller ever queues
+  for a slot with one; the slot waiter still supports an abort signal (a queued
+  waiter that aborts is removed without freeing a slot it never held) for any
+  future caller that passes one.
 
 ### 7.4 Failure semantics
 
@@ -500,7 +505,10 @@ Apply the Pi host `truncateHead` with `maxBytes = 51200` and `maxLines = 2000`
 is. When truncated, append
 `\n\n[Search output truncated by pi; reduce numResults or narrow the domain filters.]`.
 `formatFetchToolResult` applies the same limits but appends
-`\n\n[Page content truncated by pi; fetch fewer URLs per call.]` instead.
+`\n\n[Page content truncated by pi; the visible text is a partial read of the
+page.]` instead. `web_fetch` reads exactly one URL per call (§3.4), so the
+notice only reports a partial read; it never asks the model to change how many
+URLs it fetches.
 
 ### 8.4 Tool result shape
 

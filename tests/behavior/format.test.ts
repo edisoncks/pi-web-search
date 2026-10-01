@@ -114,5 +114,9 @@ describe("fetch output formatting", () => {
     const output = formatFetchToolResult({ text: big, resultCount: 2 });
     assert.deepEqual(output.details, { provider: "obscura", resultCount: 2 });
     assert.match(output.content[0].text, /\[Page content truncated by pi;/);
+    // web_fetch reads one URL per call, so the notice must never advise
+    // fetching fewer URLs — it reports a partial read instead.
+    assert.doesNotMatch(output.content[0].text, /fetch fewer/);
+    assert.match(output.content[0].text, /partial read/);
   });
 });

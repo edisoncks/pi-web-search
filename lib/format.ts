@@ -60,7 +60,7 @@ export function truncateSearchOutput(text: string): string {
 export function truncateFetchOutput(text: string): string {
   return truncateWithNotice(
     text,
-    "[Page content truncated by pi; fetch fewer URLs per call.]",
+    "[Page content truncated by pi; the visible text is a partial read of the page.]",
   );
 }
 
