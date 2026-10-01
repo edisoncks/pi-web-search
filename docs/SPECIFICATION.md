@@ -27,8 +27,8 @@ in RFC 2119.
   `AbortSignal.timeout`/`AbortSignal.any` and throws `UnsupportedRuntimeError`
   with the message
   `pi-web-search requires Node >=22.19.0 (AbortSignal.timeout/any is unavailable)`.
-  This is an environment fault, not a provider fault: both provider wrappers
-  rethrow it unchanged (§5.6, §6.9) rather than framing it as an outage.
+  This is an environment fault, not a provider fault: every tool wrapper
+  rethrows it unchanged (§5.6, §6.9, §7.4) rather than framing it as an outage.
 - `EXA_API_KEY` is optional (§5.3); `obscura` on `PATH` is required for the
   DuckDuckGo provider (§6.1) and the page-fetch tool (§7.1).
 
@@ -449,6 +449,8 @@ ENOENT`, `ENOENT.*obscura`, or `obscura.*not found` selects the PATH hint.
 - A caller abort propagates as an abort.
 - A missing `obscura` binary is the exception: it fails the whole call with the
   PATH hint (§10).
+- `UnsupportedRuntimeError` (§0) is rethrown unchanged, never reported as a
+  failed page.
 
 ---
 

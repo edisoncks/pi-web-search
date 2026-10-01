@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import {
   assertSupportedRuntime,
   createDuckDuckGoState,
+  createFetchState,
   getSearchSignal,
   UnsupportedRuntimeError,
   type AbortSignalStatics,
 } from "../lib/policy.js";
 import { searchExaForTool } from "../lib/exa.js";
 import { searchDuckDuckGoForTool } from "../lib/duckduckgo.js";
+import { fetchPageForTool } from "../lib/fetch.js";
 import type { NormalizedSearchParams } from "../lib/types.js";
 
 // The pure guard takes its statics as an argument, so a Node too old for
@@ -49,7 +51,7 @@ describe("unsupported runtime guard", () => {
   // seam to inject. Break the global for the duration of this one test and
   // restore it unconditionally: nothing between the break and the restore can
   // throw uncaught, and preconditions are created before the break.
-  it("both provider wrappers surface the runtime error unchanged", async () => {
+  it("every tool wrapper surfaces the runtime error unchanged", async () => {
     const timeout = AbortSignal.timeout;
     const any = AbortSignal.any;
     const state = createDuckDuckGoState();
@@ -63,6 +65,14 @@ describe("unsupported runtime guard", () => {
       );
       await assert.rejects(
         searchDuckDuckGoForTool(params, state, undefined),
+        (error: unknown) => error instanceof UnsupportedRuntimeError,
+      );
+      await assert.rejects(
+        fetchPageForTool(
+          { url: "https://example.com" },
+          createFetchState(),
+          undefined,
+        ),
         (error: unknown) => error instanceof UnsupportedRuntimeError,
       );
     } finally {

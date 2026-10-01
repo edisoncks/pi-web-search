@@ -152,9 +152,9 @@ code, and why the implementation made them.
 
 - **Fetch failures are reported, not thrown.** `fetchPageForTool` turns a failed
   fetch into a `Failed to fetch page:` result so the model can react (retry,
-  pick another URL) instead of losing the turn. A missing `obscura` is the
-  exception: no URL could have been fetched, so the call fails with the PATH
-  hint.
+  pick another URL) instead of losing the turn. Two failures are exceptions and
+  fail the call: a missing `obscura` (no URL could have been fetched) and
+  `UnsupportedRuntimeError` (an environment fault, §0).
 
 - **Page content and browser processes are both bounded.** Each page is trimmed
   to 4000 characters, and the global slot limit keeps at most three Obscura

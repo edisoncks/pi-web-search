@@ -19,6 +19,7 @@ import {
   isAbortError,
   isObscuraMissingError,
   shortErrorMessage,
+  UnsupportedRuntimeError,
   waitForPromiseWithSignal,
   withFetchSlot,
 } from "./policy.js";
@@ -160,6 +161,9 @@ export async function fetchPageForTool(
     outcome = await fetchPage(params.url, state, signal, attempt);
   } catch (error) {
     if (signal?.aborted) throw error;
+    // An unsupported runtime is an environment fault, not a failed page
+    // (§0); rethrow it like the search wrappers do.
+    if (error instanceof UnsupportedRuntimeError) throw error;
     if (isObscuraMissingError(error)) {
       throw createMissingObscuraError(error);
     }
