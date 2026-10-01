@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildObscuraFetchArgs,
   fetchPage,
-  fetchPagesForTool,
+  fetchPageForTool,
   truncatePageContent,
 } from "../../lib/fetch.js";
 import { createFetchState } from "../../lib/policy.js";
@@ -12,8 +12,6 @@ import {
   FETCH_MAX_PAGE_CHARS,
   type FetchedPage,
 } from "../../lib/types.js";
-
-const params = (urls: string[]) => ({ urls });
 
 const page = (url: string, content = "body"): FetchedPage => ({
   status: "ok",
@@ -94,28 +92,40 @@ describe("fetch behavior: cache and dedup", () => {
   });
 });
 
-describe("fetch behavior: batch", () => {
-  it("reports a per-URL error and still formats the successes", async () => {
+describe("fetch behavior: results, errors, and the global slot", () => {
+  it("returns a successful page with count one", async () => {
     const state = createFetchState();
-    const result = await fetchPagesForTool(
-      params(["https://ok.com", "https://bad.com"]),
+    const result = await fetchPageForTool(
+      { url: "https://ok.com" },
       state,
       undefined,
-      async (url) => {
-        if (url === "https://bad.com") throw new Error("nope");
-        return page(url, "OK");
+      async (url) => page(url, "Hello"),
+    );
+    assert.equal(result.resultCount, 1);
+    assert.match(result.text, /URL: https:\/\/ok\.com/);
+    assert.match(result.text, /Hello/);
+  });
+
+  it("reports a fetch failure in place", async () => {
+    const state = createFetchState();
+    const result = await fetchPageForTool(
+      { url: "https://bad.com" },
+      state,
+      undefined,
+      async () => {
+        throw new Error("nope");
       },
     );
-
-    assert.equal(result.resultCount, 1);
-    assert.match(result.text, /1\. https:\/\/ok\.com\nOK/);
-    assert.match(result.text, /2\. https:\/\/bad\.com\n {3}Error: nope/);
+    assert.equal(result.resultCount, 0);
+    assert.match(result.text, /Failed to fetch page:/);
+    assert.match(result.text, /URL: https:\/\/bad\.com/);
+    assert.match(result.text, /Error: nope/);
   });
 
   it("maps an abort-shaped failure to a timeout entry", async () => {
     const state = createFetchState();
-    const result = await fetchPagesForTool(
-      params(["https://slow.com"]),
+    const result = await fetchPageForTool(
+      { url: "https://slow.com" },
       state,
       undefined,
       async () => {
@@ -127,11 +137,11 @@ describe("fetch behavior: batch", () => {
     assert.match(result.text, /Error: timed out/);
   });
 
-  it("propagates a caller abort instead of reporting a per-URL error", async () => {
+  it("propagates a caller abort instead of reporting an error", async () => {
     const controller = new AbortController();
     const state = createFetchState();
-    const pending = fetchPagesForTool(
-      params(["https://slow.com"]),
+    const pending = fetchPageForTool(
+      { url: "https://slow.com" },
       state,
       controller.signal,
       () => new Promise<FetchedPage>(() => {}),
@@ -144,19 +154,14 @@ describe("fetch behavior: batch", () => {
   it("surfaces a missing obscura as a tool error", async () => {
     const state = createFetchState();
     await assert.rejects(
-      fetchPagesForTool(
-        params(["https://e.com"]),
-        state,
-        undefined,
-        async () => {
-          throw new Error("spawn obscura ENOENT");
-        },
-      ),
+      fetchPageForTool({ url: "https://e.com" }, state, undefined, async () => {
+        throw new Error("spawn obscura ENOENT");
+      }),
       /obscura not found on PATH/,
     );
   });
 
-  it("caps the number of concurrent attempts", async () => {
+  it("caps concurrent fetches globally across separate calls", async () => {
     const state = createFetchState();
     let active = 0;
     let peak = 0;
@@ -169,7 +174,9 @@ describe("fetch behavior: batch", () => {
     };
 
     const urls = Array.from({ length: 5 }, (_, i) => `https://e.com/${i}`);
-    await fetchPagesForTool(params(urls), state, undefined, attempt);
+    await Promise.all(
+      urls.map((url) => fetchPageForTool({ url }, state, undefined, attempt)),
+    );
     assert.equal(peak, FETCH_CONCURRENCY);
   });
 });

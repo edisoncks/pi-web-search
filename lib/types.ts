@@ -6,10 +6,9 @@ export const MAX_NUM_RESULTS = 20;
 export const MIN_QUERY_LENGTH = 2;
 export const REQUEST_TIMEOUT_MS = 15_000;
 
-// web_fetch limits. One call reads a small batch of pages; each page is capped
-// in characters so a single call cannot flood the model's context.
-export const MIN_FETCH_URLS = 1;
-export const MAX_FETCH_URLS = 5;
+// web_fetch limits. Each page is capped in characters so one fetch cannot flood
+// the model's context. FETCH_CONCURRENCY bounds Obscura processes globally —
+// across every concurrent web_fetch call, not just the URLs of one call.
 export const FETCH_TIMEOUT_MS = 30_000;
 export const FETCH_MAX_PAGE_CHARS = 4_000;
 export const FETCH_CONCURRENCY = 3;
@@ -42,11 +41,11 @@ export interface ProviderSearchResult {
 }
 
 export interface WebFetchParams {
-  urls: string[];
+  url: string;
 }
 
 export interface NormalizedFetchParams {
-  urls: string[];
+  url: string;
 }
 
 /** A successfully fetched page: `content` is already capped and trimmed. */
@@ -57,7 +56,7 @@ export interface FetchedPage {
   truncated: boolean;
 }
 
-/** A single URL that could not be read. The batch still succeeds. */
+/** A URL that could not be read. The tool call still returns a result. */
 export interface FailedFetch {
   status: "error";
   url: string;
@@ -84,9 +83,19 @@ export interface FetchCacheEntry {
   expiresAt: number;
 }
 
+/** A queued page fetch waiting for one of the global fetch slots. */
+export interface FetchSlotWaiter {
+  resolve: () => void;
+  cleanup: () => void;
+}
+
 export interface FetchState {
   cache: Map<string, FetchCacheEntry>;
   inFlight: Map<string, Promise<FetchedPage>>;
+  /** Global count of in-flight page fetches; capped at `FETCH_CONCURRENCY`. */
+  active: number;
+  /** FIFO queue of fetches waiting for a slot. */
+  waiters: FetchSlotWaiter[];
 }
 
 export interface McpRpcResponse {

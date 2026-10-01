@@ -22,7 +22,7 @@ interface CapturedCall {
 }
 
 interface CapturedFetch {
-  urls: string[];
+  url: string;
   hasSignal: boolean;
 }
 
@@ -58,9 +58,9 @@ function setup(): {
       });
       return result("DuckDuckGo");
     },
-    fetchPages: async (params, signal) => {
+    fetchPage: async (params, signal) => {
       fetchCalls.push({
-        urls: params.urls,
+        url: params.url,
         hasSignal: signal !== undefined,
       });
       return result("Obscura");
@@ -204,18 +204,15 @@ describe("web search tool execute wiring", () => {
     assert.equal(calls.length, 0);
   });
 
-  it("routes web_fetch to the fetch provider and normalizes urls", async () => {
+  it("routes web_fetch to the fetch provider and normalizes the url", async () => {
     const { tools, fetchCalls } = setup();
     const output = await execute(toolByName(tools, "web_fetch"), {
-      // The duplicate collapses; schemeless values gain https://.
-      urls: ["example.com/a", "https://example.com/a", "https://example.org/b"],
+      // A schemeless value gains https://.
+      url: "example.com/a",
     });
 
     assert.deepEqual(fetchCalls, [
-      {
-        urls: ["https://example.com/a", "https://example.org/b"],
-        hasSignal: false,
-      },
+      { url: "https://example.com/a", hasSignal: false },
     ]);
     assert.deepEqual(output.details, { provider: "obscura", resultCount: 1 });
   });
@@ -225,7 +222,7 @@ describe("web search tool execute wiring", () => {
     const controller = new AbortController();
     await execute(
       toolByName(tools, "web_fetch"),
-      { urls: ["https://example.com/a"] },
+      { url: "https://example.com/a" },
       controller.signal,
     );
     assert.equal(fetchCalls[0].hasSignal, true);
@@ -235,7 +232,7 @@ describe("web search tool execute wiring", () => {
     const { tools, fetchCalls } = setup();
     await assert.rejects(
       execute(toolByName(tools, "web_fetch"), {
-        urls: ["https://exa mple.com"],
+        url: "https://exa mple.com",
       }),
       /Invalid URL/,
     );

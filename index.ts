@@ -5,7 +5,7 @@ import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createDuckDuckGoState, createFetchState } from "./lib/policy.js";
 import { searchExaForTool } from "./lib/exa.js";
 import { searchDuckDuckGoForTool } from "./lib/duckduckgo.js";
-import { fetchPagesForTool } from "./lib/fetch.js";
+import { fetchPageForTool } from "./lib/fetch.js";
 import { registerWebTools } from "./lib/tools.js";
 
 export default function (pi: ExtensionAPI) {
@@ -20,7 +20,6 @@ export default function (pi: ExtensionAPI) {
     searchExa: searchExaForTool,
     searchDuckDuckGo: (params, signal) =>
       searchDuckDuckGoForTool(params, duckDuckGoState, signal),
-    fetchPages: (params, signal) =>
-      fetchPagesForTool(params, fetchState, signal),
+    fetchPage: (params, signal) => fetchPageForTool(params, fetchState, signal),
   });
 }

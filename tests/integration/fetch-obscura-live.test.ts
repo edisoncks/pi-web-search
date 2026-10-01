@@ -4,7 +4,7 @@ import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fetchPagesForTool } from "../../lib/fetch.js";
+import { fetchPageForTool } from "../../lib/fetch.js";
 import { createFetchState } from "../../lib/policy.js";
 
 // A real `obscura` subprocess on PATH drives the page-fetch path end to end:
@@ -51,8 +51,8 @@ after(async () => {
 posixDescribe("page fetch subprocess boundary (real obscura on PATH)", () => {
   it("fetches a page and formats its content", async () => {
     process.env.FAKE_OBSCURA_PAGE_FILE = fixture("page.md");
-    const result = await fetchPagesForTool(
-      { urls: ["https://example.com/hello"] },
+    const result = await fetchPageForTool(
+      { url: "https://example.com/hello" },
       createFetchState(),
       undefined,
     );
@@ -61,11 +61,11 @@ posixDescribe("page fetch subprocess boundary (real obscura on PATH)", () => {
     assert.match(result.text, /synthetic fixture page/);
   });
 
-  it("reports a failed page without failing the batch", async () => {
+  it("reports a failed page without throwing", async () => {
     process.env.FAKE_OBSCURA_PAGE_FILE = fixture("page.md");
     process.env.FAKE_OBSCURA_FAIL = "1";
-    const result = await fetchPagesForTool(
-      { urls: ["https://example.com/boom"] },
+    const result = await fetchPageForTool(
+      { url: "https://example.com/boom" },
       createFetchState(),
       undefined,
     );
@@ -78,8 +78,8 @@ posixDescribe("page fetch subprocess boundary (real obscura on PATH)", () => {
     process.env.PATH = "/nonexistent";
     try {
       await assert.rejects(
-        fetchPagesForTool(
-          { urls: ["https://example.com/x"] },
+        fetchPageForTool(
+          { url: "https://example.com/x" },
           createFetchState(),
           undefined,
         ),

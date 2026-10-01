@@ -7,12 +7,14 @@
 import {
   FETCH_CACHE_MAX_ENTRIES,
   FETCH_CACHE_TTL_MS,
+  FETCH_CONCURRENCY,
   FETCH_TIMEOUT_MS,
   REQUEST_TIMEOUT_MS,
 } from "./types.js";
 import type {
   DuckDuckGoState,
   FetchedPage,
+  FetchSlotWaiter,
   FetchState,
   NormalizedSearchParams,
   WebSearchResult,
@@ -68,6 +70,8 @@ export function createFetchState(): FetchState {
   return {
     cache: new Map(),
     inFlight: new Map(),
+    active: 0,
+    waiters: [],
   };
 }
 
@@ -125,8 +129,8 @@ export function getSearchSignal(
 }
 
 /**
- * The fetch equivalent of `getSearchSignal`: one bound for a whole batch of
- * page fetches, so five pages do not each get a fresh 30 s budget.
+ * The fetch equivalent of `getSearchSignal`: the timeout the shared work for
+ * one URL owns, so a co-waiter cannot reset the bound.
  */
 export function getFetchSignal(
   signal: AbortSignal | undefined,
@@ -394,5 +398,66 @@ export function cacheFetchPage(
     const oldestKey = state.cache.keys().next().value;
     if (oldestKey === undefined) break;
     state.cache.delete(oldestKey);
+  }
+}
+
+function acquireFetchSlot(
+  state: FetchState,
+  signal: AbortSignal | undefined,
+): Promise<void> {
+  throwIfAborted(signal);
+  if (state.active < FETCH_CONCURRENCY) {
+    state.active += 1;
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const waiter: FetchSlotWaiter = { resolve, cleanup: () => {} };
+    const onAbort = () => {
+      const index = state.waiters.indexOf(waiter);
+      if (index >= 0) state.waiters.splice(index, 1);
+      waiter.cleanup();
+      reject(
+        signal?.reason ??
+          new DOMException("The operation was aborted", "AbortError"),
+      );
+    };
+    waiter.cleanup = () => signal?.removeEventListener("abort", onAbort);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    state.waiters.push(waiter);
+  });
+}
+
+function releaseFetchSlot(state: FetchState): void {
+  const next = state.waiters.shift();
+  if (!next) {
+    state.active = Math.max(0, state.active - 1);
+    return;
+  }
+  // Hand the slot straight to the next waiter, so `active` is unchanged.
+  // Clean up before resolving so a late abort cannot reject a fetch that has
+  // already been granted its slot.
+  next.cleanup();
+  next.resolve();
+}
+
+/**
+ * A global concurrency gate for page fetches. The limit lives on the shared
+ * `FetchState`, so it bounds Obscura processes across every concurrent
+ * `web_fetch` call, not just the URLs of one call. A waiter that aborts while
+ * queued is removed without freeing a slot it never held; a running holder
+ * releases its slot only when its operation settles.
+ */
+export async function withFetchSlot<T>(
+  state: FetchState,
+  signal: AbortSignal | undefined,
+  operation: () => Promise<T>,
+): Promise<T> {
+  await acquireFetchSlot(state, signal);
+  try {
+    throwIfAborted(signal);
+    return await operation();
+  } finally {
+    releaseFetchSlot(state);
   }
 }

@@ -4,7 +4,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
-  FETCH_CONCURRENCY,
   FETCH_MAX_PAGE_CHARS,
   FETCH_TIMEOUT_MS,
   type FetchedPage,
@@ -21,8 +20,9 @@ import {
   isObscuraMissingError,
   shortErrorMessage,
   waitForPromiseWithSignal,
+  withFetchSlot,
 } from "./policy.js";
-import { formatFetchedPages } from "./format.js";
+import { formatFetchedPage } from "./format.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -76,8 +76,8 @@ export async function fetchPageAttempt(
     {
       encoding: "utf8",
       maxBuffer: FETCH_MAX_OUTPUT_BYTES,
-      // fetchPagesForTool owns the authoritative batch deadline and passes it
-      // down as this signal. Obscura also has its own `--timeout` backstop (see
+      // The shared fetch owns the authoritative 30 s deadline and passes it down
+      // as this signal. Obscura also has its own `--timeout` backstop (see
       // buildObscuraFetchArgs); no separate execFile timeout is set, so the
       // child is not raced by a third timer.
       signal,
@@ -109,7 +109,12 @@ export async function fetchPage(
   const pending = state.inFlight.get(url);
   if (pending) return waitForPromiseWithSignal(pending, signal);
 
-  const request = attempt(url, undefined).then((page) => {
+  // The shared work owns the fetch deadline and the global slot, not any
+  // caller: an aborting caller releases nothing, and the slot is held until the
+  // child process settles.
+  const request = withFetchSlot(state, undefined, () =>
+    attempt(url, getFetchSignal(undefined)),
+  ).then((page) => {
     cacheFetchPage(state, url, page);
     return page;
   });
@@ -121,26 +126,6 @@ export async function fetchPage(
   return waitForPromiseWithSignal(tracked, signal);
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  operation: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workerCount = Math.max(1, Math.min(limit, items.length));
-  const workers = Array.from({ length: workerCount }, async () => {
-    for (;;) {
-      const index = next;
-      next += 1;
-      if (index >= items.length) return;
-      results[index] = await operation(items[index]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
 function describeFetchError(error: unknown): string {
   if (isAbortError(error)) return "timed out";
   if (error instanceof DOMException && error.name === "TimeoutError") {
@@ -150,9 +135,8 @@ function describeFetchError(error: unknown): string {
 }
 
 /**
- * The PATH hint for a missing `obscura`. A missing binary is the one failure
- * that fails the whole batch: every URL would fail identically, so a per-URL
- * error per entry would just repeat the same message N times.
+ * The PATH hint for a missing `obscura`. A missing binary fails the whole
+ * call, because no URL could have been fetched anyway.
  */
 export function createMissingObscuraError(error: unknown): Error {
   return new Error(
@@ -161,39 +145,33 @@ export function createMissingObscuraError(error: unknown): Error {
 }
 
 /**
- * Fetch every URL in the batch. A single URL's failure becomes a per-entry
- * error so the others still return; a caller abort or a missing Obscura binary
- * fails the whole call. The batch shares one deadline.
+ * Fetch one URL for the tool. The failure is reported in place, except for a
+ * caller abort (which propagates) and a missing Obscura binary (which fails the
+ * whole call with the PATH hint).
  */
-export async function fetchPagesForTool(
+export async function fetchPageForTool(
   params: NormalizedFetchParams,
   state: FetchState,
   signal: AbortSignal | undefined,
   attempt: FetchAttempt = fetchPageAttempt,
 ): Promise<ProviderSearchResult> {
-  const requestSignal = getFetchSignal(signal);
+  let outcome: FetchOutcome;
+  try {
+    outcome = await fetchPage(params.url, state, signal, attempt);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    if (isObscuraMissingError(error)) {
+      throw createMissingObscuraError(error);
+    }
+    outcome = {
+      status: "error",
+      url: params.url,
+      error: describeFetchError(error),
+    };
+  }
 
-  const outcomes = await mapWithConcurrency<string, FetchOutcome>(
-    params.urls,
-    FETCH_CONCURRENCY,
-    async (url): Promise<FetchOutcome> => {
-      try {
-        return await fetchPage(url, state, requestSignal, attempt);
-      } catch (error) {
-        if (signal?.aborted) throw error;
-        if (isObscuraMissingError(error)) {
-          throw createMissingObscuraError(error);
-        }
-        return { status: "error", url, error: describeFetchError(error) };
-      }
-    },
-  );
-
-  const pageCount = outcomes.filter(
-    (outcome) => outcome.status === "ok",
-  ).length;
   return {
-    text: formatFetchedPages(outcomes),
-    resultCount: pageCount,
+    text: formatFetchedPage(outcome),
+    resultCount: outcome.status === "ok" ? 1 : 0,
   };
 }

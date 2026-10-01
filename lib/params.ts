@@ -4,9 +4,7 @@
 import { Type } from "typebox";
 import {
   DEFAULT_NUM_RESULTS,
-  MAX_FETCH_URLS,
   MAX_NUM_RESULTS,
-  MIN_FETCH_URLS,
   MIN_QUERY_LENGTH,
   type NormalizedFetchParams,
   type NormalizedSearchParams,
@@ -70,35 +68,18 @@ export function normalizeFetchUrl(value: string): string {
 export function normalizeFetchParams(
   params: WebFetchParams,
 ): NormalizedFetchParams {
-  const input = params.urls ?? [];
-  const urls: string[] = [];
-  const seen = new Set<string>();
-
-  for (const raw of input) {
-    if (typeof raw !== "string") throw new Error(`Invalid URL: ${String(raw)}`);
-    const url = normalizeFetchUrl(raw);
-    if (seen.has(url)) continue;
-    seen.add(url);
-    urls.push(url);
+  if (typeof params.url !== "string") {
+    throw new Error(`Invalid URL: ${String(params.url)}`);
   }
-
-  if (urls.length < MIN_FETCH_URLS) {
-    throw new Error(`At least ${MIN_FETCH_URLS} URL is required`);
-  }
-  if (urls.length > MAX_FETCH_URLS) {
-    throw new Error(`At most ${MAX_FETCH_URLS} URLs can be fetched per call`);
-  }
-
-  return { urls };
+  return { url: normalizeFetchUrl(params.url) };
 }
 
 export function createFetchParameters() {
   return Type.Object({
-    urls: Type.Array(Type.String({ minLength: 1 }), {
-      minItems: MIN_FETCH_URLS,
-      maxItems: MAX_FETCH_URLS,
+    url: Type.String({
+      minLength: 1,
       description:
-        "Absolute http(s) URLs to fetch (1-5). Use the URLs returned by a web search.",
+        "Absolute http(s) URL to fetch. Use a URL returned by a web search.",
     }),
   });
 }

@@ -17,7 +17,7 @@ if the two conflict, the SPEC wins.
 | `lib/version.ts`    | `PACKAGE_VERSION`, read from `package.json` at runtime with a sentinel fallback.                              | `types`                                          |
 | `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version`, `format` |
 | `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`, `format`            |
-| `lib/fetch.ts`      | Obscura page-fetch transport, content capping, cache/dedup, and the batch policy.                             | `types`, `policy`, `format`                      |
+| `lib/fetch.ts`      | Obscura page-fetch transport, content capping, cache/dedup, and the global concurrency policy.                | `types`, `policy`, `format`                      |
 | `index.ts`          | Extension factory: shared DuckDuckGo and fetch state, then `registerWebTools`.                                | `policy`, `exa`, `duckduckgo`, `fetch`, `tools`  |
 
 ## Dependency graph
@@ -86,16 +86,15 @@ tool call
 tool call
 └─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeFetchParams  (lib/params.ts)
-   ├─ fetchPagesForTool  (fetch.ts)
-   │  ├─ getFetchSignal  (one caller-signal + 30 s batch deadline)
-   │  ├─ mapWithConcurrency(3)
-   │  │  └─ fetchPage
-   │  │     ├─ cache hit? return cached page
-   │  │     ├─ in-flight hit? await the shared promise
-   │  │     └─ fetchPageAttempt
-   │  │        ├─ buildObscuraFetchArgs  →  execFile("obscura", …)
-   │  │        └─ trim + cap page content
-   │  └─ formatFetchedPages
+   ├─ fetchPageForTool  (fetch.ts)
+   │  └─ fetchPage
+   │     ├─ cache hit? return cached page
+   │     ├─ in-flight hit? await the shared promise
+   │     └─ shared work (no caller signal)
+   │        ├─ withFetchSlot  (global cap of 3 across every call)
+   │        └─ fetchPageAttempt  (own 30 s timeout)
+   │           ├─ buildObscuraFetchArgs  →  execFile("obscura", …)
+   │           └─ trim + cap page content
    └─ formatFetchToolResult  (lib/format.ts)
 ```
 
@@ -151,14 +150,16 @@ code, and why the implementation made them.
   fixed page that the caller slices. Counting `numResults` in the key would
   fetch the same page once per result count.
 
-- **A fetch failure is per-URL; a missing binary is not.** One dead link must
-  not lose the four pages that loaded, so `fetchPagesForTool` turns a URL's
-  failure into an `Error:` entry and keeps the batch. A missing `obscura` is the
-  exception: every entry would repeat the same PATH hint, so it fails the call.
+- **Fetch failures are reported, not thrown.** `fetchPageForTool` turns a failed
+  fetch into a `Failed to fetch page:` result so the model can react (retry,
+  pick another URL) instead of losing the turn. A missing `obscura` is the
+  exception: no URL could have been fetched, so the call fails with the PATH
+  hint.
 
-- **Page content is capped before it reaches the model.** Each page is trimmed
-  to 4000 characters and the batch runs at most three Obscura processes at once,
-  so a search followed by a fetch can flood neither the context nor the machine.
+- **Page content and browser processes are both bounded.** Each page is trimmed
+  to 4000 characters, and the global slot limit keeps at most three Obscura
+  processes alive at once — across every parallel `web_fetch` call, not just
+  one.
 
 ## Patterns and invariants
 
@@ -202,12 +203,13 @@ know them before you touch the relevant code.
   the tool `description`/`promptSnippet`/`promptGuidelines` (SPEC §3); changing
   them changes what the model does. Both search tools carry a `web_fetch`
   guideline so a result is read, not trusted.
-- **The fetch batch shares one deadline.** `getFetchSignal` is called once per
-  batch, not per URL, so five pages do not each get a fresh 30 s budget.
-- **Fetched page content is untrusted.** `formatFetchedPages` labels it as data,
+- **A fetch owns its own deadline.** `getFetchSignal` is created once per shared
+  fetch, not per caller, so a co-waiter cannot reset the 30 s budget.
+- **Fetched page content is untrusted.** `formatFetchedPage` labels it as data,
   not instructions, before it enters the model's context.
-- **Fetch outcomes keep caller order.** The concurrency pool reorders neither
-  results nor errors.
+- **The fetch slot is global.** `withFetchSlot` counts and queues on the shared
+  `FetchState`, so the cap binds across parallel `web_fetch` calls. A waiter that
+  aborts while queued is removed without freeing a slot it never held.
 
 ## Packaging
 

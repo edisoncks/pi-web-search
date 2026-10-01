@@ -65,13 +65,13 @@ describe("createSearchParameters", () => {
 });
 
 describe("normalizeFetchParams", () => {
-  it("normalizes schemeless URLs and dedupes in first-seen order", () => {
-    assert.deepEqual(
-      normalizeFetchParams({
-        urls: [" example.com/a ", "https://example.com/a", "https://b.org"],
-      }),
-      { urls: ["https://example.com/a", "https://b.org/"] },
-    );
+  it("normalizes a schemeless URL to an absolute https URL", () => {
+    assert.deepEqual(normalizeFetchParams({ url: " example.com/a " }), {
+      url: "https://example.com/a",
+    });
+    assert.deepEqual(normalizeFetchParams({ url: "https://b.org" }), {
+      url: "https://b.org/",
+    });
   });
 
   it("rejects blank, non-http, and unparseable URLs", () => {
@@ -81,29 +81,16 @@ describe("normalizeFetchParams", () => {
       "ftp://example.com",
       "https://exa mple.com",
     ]) {
-      assert.throws(() => normalizeFetchParams({ urls: [url] }), /Invalid URL/);
+      assert.throws(() => normalizeFetchParams({ url }), /Invalid URL/);
     }
-  });
-
-  it("requires at least one URL", () => {
-    assert.throws(() => normalizeFetchParams({ urls: [] }), /At least 1 URL/);
-  });
-
-  it("caps the batch at five distinct URLs", () => {
-    const five = Array.from({ length: 5 }, (_, i) => `https://e.com/${i}`);
-    assert.equal(normalizeFetchParams({ urls: five }).urls.length, 5);
-    assert.throws(
-      () => normalizeFetchParams({ urls: [...five, "https://e.com/5"] }),
-      /At most 5 URLs/,
-    );
   });
 });
 
 describe("createFetchParameters", () => {
-  it("declares the single documented urls field", () => {
+  it("declares the single documented url field", () => {
     const schema = createFetchParameters() as {
       properties?: Record<string, unknown>;
     };
-    assert.deepEqual(Object.keys(schema.properties ?? {}).sort(), ["urls"]);
+    assert.deepEqual(Object.keys(schema.properties ?? {}).sort(), ["url"]);
   });
 });
