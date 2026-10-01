@@ -21,7 +21,7 @@ import type {
 } from "./types.js";
 
 /** Provider calls injected into the tool definitions, one per backend. */
-export interface WebSearchToolDeps {
+export interface WebToolDeps {
   searchExa(
     params: NormalizedSearchParams,
     signal: AbortSignal | undefined,
@@ -36,10 +36,7 @@ export interface WebSearchToolDeps {
   ): Promise<ProviderSearchResult>;
 }
 
-export function registerWebSearchTools(
-  pi: ExtensionAPI,
-  deps: WebSearchToolDeps,
-): void {
+export function registerWebTools(pi: ExtensionAPI, deps: WebToolDeps): void {
   pi.registerTool({
     name: "web_search_exa",
     label: "Web Search (Exa)",

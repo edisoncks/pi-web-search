@@ -4,7 +4,7 @@ import type {
   ExtensionAPI,
   ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { registerWebSearchTools } from "../../lib/tools.js";
+import { registerWebTools } from "../../lib/tools.js";
 import type {
   NormalizedSearchParams,
   ProviderSearchResult,
@@ -45,7 +45,7 @@ function setup(): {
     resultCount: 1,
   });
 
-  registerWebSearchTools(pi, {
+  registerWebTools(pi, {
     searchExa: async (params, signal) => {
       calls.push({ provider: "exa", params, hasSignal: signal !== undefined });
       return result("Exa");

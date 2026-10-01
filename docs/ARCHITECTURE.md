@@ -18,7 +18,7 @@ if the two conflict, the SPEC wins.
 | `lib/exa.ts`        | Exa MCP transport (JSON-RPC over `fetch`) and result shaping.                                                 | `types`, `filter`, `policy`, `version`, `format` |
 | `lib/duckduckgo.ts` | Obscura fetch and DuckDuckGo Lite HTML parsing.                                                               | `types`, `filter`, `policy`, `format`            |
 | `lib/fetch.ts`      | Obscura page-fetch transport, content capping, cache/dedup, and the batch policy.                             | `types`, `policy`, `format`                      |
-| `index.ts`          | Extension factory: shared DuckDuckGo and fetch state, then `registerWebSearchTools`.                          | `policy`, `exa`, `duckduckgo`, `fetch`, `tools`  |
+| `index.ts`          | Extension factory: shared DuckDuckGo and fetch state, then `registerWebTools`.                                | `policy`, `exa`, `duckduckgo`, `fetch`, `tools`  |
 
 ## Dependency graph
 
@@ -46,7 +46,7 @@ between `index` and the providers; nothing below `index` imports `index`.
 
 ```text
 tool call
-└─ registerWebSearchTools execute  (lib/tools.ts)
+└─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeSearchParams  (lib/params.ts)
    ├─ searchExaForTool  (exa.ts)
    │  └─ searchExa
@@ -66,7 +66,7 @@ tool call
 
 ```text
 tool call
-└─ registerWebSearchTools execute  (lib/tools.ts)
+└─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeSearchParams  (lib/params.ts)
    ├─ searchDuckDuckGoForTool  (duckduckgo.ts)
    │  └─ searchDuckDuckGo
@@ -84,7 +84,7 @@ tool call
 
 ```text
 tool call
-└─ registerWebSearchTools execute  (lib/tools.ts)
+└─ registerWebTools execute  (lib/tools.ts)
    ├─ normalizeFetchParams  (lib/params.ts)
    ├─ fetchPagesForTool  (fetch.ts)
    │  ├─ getFetchSignal  (one caller-signal + 30 s batch deadline)

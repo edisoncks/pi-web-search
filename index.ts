@@ -6,7 +6,7 @@ import { createDuckDuckGoState, createFetchState } from "./lib/policy.js";
 import { searchExaForTool } from "./lib/exa.js";
 import { searchDuckDuckGoForTool } from "./lib/duckduckgo.js";
 import { fetchPagesForTool } from "./lib/fetch.js";
-import { registerWebSearchTools } from "./lib/tools.js";
+import { registerWebTools } from "./lib/tools.js";
 
 export default function (pi: ExtensionAPI) {
   // One shared DuckDuckGo state per extension load: all web_search_ddg calls
@@ -16,7 +16,7 @@ export default function (pi: ExtensionAPI) {
   // page cache and in-flight dedup.
   const fetchState = createFetchState();
 
-  registerWebSearchTools(pi, {
+  registerWebTools(pi, {
     searchExa: searchExaForTool,
     searchDuckDuckGo: (params, signal) =>
       searchDuckDuckGoForTool(params, duckDuckGoState, signal),
