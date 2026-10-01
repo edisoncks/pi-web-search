@@ -14,7 +14,6 @@ import type {
 import { isDomainMatch } from "./filter.js";
 import {
   getSearchSignal,
-  errorMessage,
   shortErrorMessage,
   waitWithSignal,
   waitForPromiseWithSignal,
@@ -23,6 +22,7 @@ import {
   markDuckDuckGoUnavailable,
   withDuckDuckGoRequestSlot,
   isRetryableDuckDuckGoError,
+  isObscuraMissingError,
   getDuckDuckGoCacheKey,
   getCachedDuckDuckGoResults,
   cacheDuckDuckGoResults,
@@ -422,11 +422,7 @@ export async function searchDuckDuckGoForTool(
 }
 
 export function createDuckDuckGoSearchError(error: unknown): Error {
-  if (
-    /spawn obscura ENOENT|ENOENT.*obscura|obscura.*not found/iu.test(
-      errorMessage(error),
-    )
-  ) {
+  if (isObscuraMissingError(error)) {
     return new Error(
       `obscura not found on PATH (required for web_search_ddg); install obscura or use web_search_exa instead. (${shortErrorMessage(error)})`,
     );

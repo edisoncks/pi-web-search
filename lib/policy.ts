@@ -105,6 +105,18 @@ export function shortErrorMessage(error: unknown): string {
   return errorMessage(error).replace(/\s+/gu, " ").slice(0, 300);
 }
 
+const OBSCURA_MISSING_PATTERN =
+  /spawn obscura ENOENT|ENOENT.*obscura|obscura.*not found/iu;
+
+/**
+ * Whether a failure means the `obscura` binary is not on `PATH`. Both the
+ * DuckDuckGo provider and the page-fetch provider depend on it, so the
+ * detection lives here instead of being duplicated per provider.
+ */
+export function isObscuraMissingError(error: unknown): boolean {
+  return OBSCURA_MISSING_PATTERN.test(errorMessage(error));
+}
+
 export function throwIfAborted(signal: AbortSignal | undefined): void {
   if (!signal?.aborted) return;
   throw (
@@ -243,7 +255,8 @@ export async function withDuckDuckGoRequestSlot<T>(
   }
 }
 
-function isAbortError(error: unknown): boolean {
+/** Whether a failure is an abort/timeout rather than a real provider fault. */
+export function isAbortError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === "AbortError") return true;
   if (typeof error !== "object" || error === null) return false;
   const candidate = error as { name?: unknown; code?: unknown };
