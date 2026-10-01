@@ -196,6 +196,77 @@ describe("fetch behavior: results, errors, and the global slot", () => {
     );
   });
 
+  it("starts the shared deadline before waiting for a global slot", async () => {
+    const originalTimeout = AbortSignal.timeout;
+    const deadlines: AbortController[] = [];
+    const releaseAttempts: Array<() => void> = [];
+    const started: string[] = [];
+    let cleaningUp = false;
+    const timeoutReason = () =>
+      new DOMException("The operation timed out", "TimeoutError");
+    const state = createFetchState();
+
+    AbortSignal.timeout = (() => {
+      const controller = new AbortController();
+      deadlines.push(controller);
+      // If an assertion fails with the old wiring, immediately abort any
+      // queued work that starts during cleanup instead of leaving it hanging.
+      if (cleaningUp) controller.abort(timeoutReason());
+      return controller.signal;
+    }) as typeof AbortSignal.timeout;
+
+    const attempt = (url: string, signal: AbortSignal | undefined) => {
+      started.push(url);
+      return new Promise<FetchedPage>((resolve, reject) => {
+        const onAbort = () => reject(signal?.reason);
+        if (signal?.aborted) {
+          onAbort();
+          return;
+        }
+        signal?.addEventListener("abort", onAbort, { once: true });
+        releaseAttempts.push(() => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve(page(url));
+        });
+      });
+    };
+
+    const pending = Array.from({ length: FETCH_CONCURRENCY + 1 }, (_, i) =>
+      fetchPageForTool(
+        { url: `https://e.com/queued-${i}` },
+        state,
+        undefined,
+        attempt,
+      ),
+    );
+
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(deadlines.length, FETCH_CONCURRENCY + 1);
+      assert.equal(started.length, FETCH_CONCURRENCY);
+
+      // The last call is still queued. Its own deadline must remove it without
+      // launching Obscura or releasing a slot held by one of the first calls.
+      deadlines.at(-1)?.abort(timeoutReason());
+      for (const release of releaseAttempts) release();
+      const results = await Promise.all(pending);
+
+      assert.equal(started.length, FETCH_CONCURRENCY);
+      assert.equal(results.at(-1)?.resultCount, 0);
+      assert.match(results.at(-1)?.text ?? "", /Error: timed out/);
+      assert.equal(state.active, 0);
+      assert.equal(state.waiters.length, 0);
+    } finally {
+      cleaningUp = true;
+      for (const deadline of deadlines) {
+        if (!deadline.signal.aborted) deadline.abort(timeoutReason());
+      }
+      for (const release of releaseAttempts) release();
+      await Promise.allSettled(pending);
+      AbortSignal.timeout = originalTimeout;
+    }
+  });
+
   it("caps concurrent fetches globally across separate calls", async () => {
     const state = createFetchState();
     let active = 0;

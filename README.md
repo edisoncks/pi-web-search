@@ -6,8 +6,9 @@ Three web tools for [pi](https://pi.dev):
   external binary.
 - **`web_search_ddg`** — fallback search, DuckDuckGo Lite through the
   [Obscura](https://github.com/h4ckf0r0day/obscura) CLI.
-- **`web_fetch`** — reads a specific URL in full through Obscura, so the
-  model can verify a search result instead of trusting its title and snippet.
+- **`web_fetch`** — extracts readable text from a specific URL through Obscura,
+  capped at 4000 UTF-16 code units, so the model can inspect a result beyond its
+  title and snippet. Longer pages are partial reads.
 
 The search policy is **Exa first; DuckDuckGo only when Exa fails or the user
 explicitly asks for it.** It is encoded in the tools' system-prompt guidance,

@@ -91,8 +91,9 @@ tool call
    │     ├─ cache hit? return cached page
    │     ├─ in-flight hit? await the shared promise
    │     └─ shared work (no caller signal)
-   │        ├─ withFetchSlot  (global cap of 3 across every call)
-   │        └─ fetchPageAttempt  (own 30 s timeout)
+   │        ├─ getFetchSignal  (one 30 s deadline, before slot wait)
+   │        ├─ withFetchSlot  (global cap of 3; deadline includes queue time)
+   │        └─ fetchPageAttempt  (execFile uses the shared deadline)
    │           ├─ buildObscuraFetchArgs  →  execFile("obscura", …)
    │           └─ trim + cap page content
    └─ formatFetchToolResult  (lib/format.ts)
@@ -157,9 +158,9 @@ code, and why the implementation made them.
   `UnsupportedRuntimeError` (an environment fault, §0).
 
 - **Page content and browser processes are both bounded.** Each page is trimmed
-  to 4000 characters, and the global slot limit keeps at most three Obscura
-  processes alive at once — across every parallel `web_fetch` call, not just
-  one.
+  to 4000 UTF-16 code units, and the global slot limit keeps at most three
+  Obscura processes alive at once — across every parallel `web_fetch` call, not
+  just one.
 
 ## Patterns and invariants
 
@@ -204,7 +205,8 @@ know them before you touch the relevant code.
   them changes what the model does. Both search tools carry a `web_fetch`
   guideline so a result is read, not trusted.
 - **A fetch owns its own deadline.** `getFetchSignal` is created once per shared
-  fetch, not per caller, so a co-waiter cannot reset the 30 s budget.
+  fetch, before it waits for a slot, so queue time and process time share one 30 s
+  budget and a co-waiter cannot reset it.
 - **Fetched page content is untrusted.** `formatFetchedPage` labels it as data,
   not instructions, before it enters the model's context.
 - **The fetch slot is global.** `withFetchSlot` counts and queues on the shared

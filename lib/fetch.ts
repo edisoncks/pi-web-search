@@ -116,11 +116,12 @@ export async function fetchPage(
   const pending = state.inFlight.get(url);
   if (pending) return waitForPromiseWithSignal(pending, signal);
 
-  // The shared work owns the fetch deadline and the global slot, not any
-  // caller: an aborting caller releases nothing, and the slot is held until the
-  // child process settles.
-  const request = withFetchSlot(state, undefined, () =>
-    attempt(url, getFetchSignal(undefined)),
+  // The shared work owns one deadline that covers both the slot queue and the
+  // child process. It is independent of caller signals, so aborting a waiter
+  // does not cancel work another caller may still need.
+  const fetchSignal = getFetchSignal(undefined);
+  const request = withFetchSlot(state, fetchSignal, () =>
+    attempt(url, fetchSignal),
   ).then((page) => {
     cacheFetchPage(state, url, page);
     return page;
